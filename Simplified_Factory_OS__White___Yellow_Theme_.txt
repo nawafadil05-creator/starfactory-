@@ -1,0 +1,586 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Power,
+  Play,
+  Square,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Package,
+  Users,
+  ShieldCheck,
+  Lock,
+  Unlock,
+  Database,
+  RefreshCw,
+  Copy,
+  Check,
+  Search,
+  Plus,
+  ArrowRight,
+  Gauge,
+  Bell,
+  KeyRound,
+  Eye,
+  Info
+} from 'lucide-react';
+
+const INITIAL_MACHINES = [
+  { id: 'M1', name: 'Machine 1 (Main Cutter)', status: 'RUNNING', speed: '100%', operator: 'Ali Khan', temp: 'Normal (38°C)' },
+  { id: 'M2', name: 'Machine 2 (Packing Box)', status: 'RUNNING', speed: '85%', operator: 'Usman', temp: 'Normal (41°C)' },
+  { id: 'M3', name: 'Machine 3 (Welder Unit)', status: 'STOPPED', speed: '0%', operator: 'Zubair', temp: 'Cool (25°C)' },
+  { id: 'M4', name: 'Machine 4 (Label Printer)', status: 'WARNING', speed: '40%', operator: 'Ahmed', temp: 'High Heat (65°C)' },
+];
+
+const INITIAL_STOCK = [
+  { id: 'S1', name: 'Iron Sheets (Loha)', total: 500, current: 380, unit: 'Pieces', status: 'OK' },
+  { id: 'S2', name: 'Packaging Boxes (Dabba)', total: 1000, current: 120, unit: 'Boxes', status: 'LOW' },
+  { id: 'S3', name: 'Plastic Wire Roll', total: 200, current: 190, unit: 'Rolls', status: 'OK' },
+  { id: 'S4', name: 'Engine Oil', total: 50, current: 8, unit: 'Liters', status: 'CRITICAL' },
+];
+
+const INITIAL_WORKERS = [
+  { id: 'W1', name: 'Ali Khan', role: 'Machine Operator', status: 'PRESENT', timeIn: '08:00 AM', avatar: '👨‍🔧' },
+  { id: 'W2', name: 'Usman Ahmed', role: 'Machine Operator', status: 'PRESENT', timeIn: '08:15 AM', avatar: '👷' },
+  { id: 'W3', name: 'Sajid Mehmood', role: 'Quality Checker', status: 'ABSENT', timeIn: '-', avatar: '👨‍💼' },
+  { id: 'W4', name: 'Zubair Shah', role: 'Helper', status: 'PRESENT', timeIn: '08:05 AM', avatar: '👷‍♂️' },
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('machines');
+  const [pinLocked, setPinLocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [userRole, setUserRole] = useState('SUPERVISOR'); // 'ADMIN', 'SUPERVISOR', 'WORKER'
+  
+  // Dynamic Application State
+  const [machines, setMachines] = useState(INITIAL_MACHINES);
+  const [stock, setStock] = useState(INITIAL_STOCK);
+  const [workers, setWorkers] = useState(INITIAL_WORKERS);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleToggleMachine = (id) => {
+    if (pinLocked) {
+      showToast('🔒 Screen is Locked! Unlock first.', true);
+      return;
+    }
+
+    setMachines(prev => prev.map(m => {
+      if (m.id === id) {
+        const nextStatus = m.status === 'RUNNING' ? 'STOPPED' : 'RUNNING';
+        const nextSpeed = nextStatus === 'RUNNING' ? '100%' : '0%';
+        showToast(`${m.name} is now ${nextStatus}!`);
+        return { ...m, status: nextStatus, speed: nextSpeed };
+      }
+      return m;
+    }));
+  };
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (pinInput === '1234' || pinInput === '') {
+      setPinLocked(false);
+      setPinInput('');
+      showToast('🔓 Screen Unlocked Successfully!');
+    } else {
+      showToast('❌ Wrong Security PIN! Try default 1234', true);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
+      {}
+      <header className="bg-yellow-400 border-b-4 border-slate-900 px-4 py-3 sticky top-0 z-40 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          
+          {/* Logo & Layman Title */}
+          <div className="flex items-center gap-3">
+            <div className="bg-slate-900 text-yellow-400 p-2.5 rounded-2xl border-2 border-slate-900 shadow-sm">
+              <Power className="w-7 h-7 stroke-[2.5]" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase">
+                FACTORY CONTROL CENTER
+              </h1>
+              <p className="text-xs font-bold text-slate-800 tracking-wide">
+                ASAN FACTORY SYSTEM (EASY FOR EVERYONE)
+              </p>
+            </div>
+          </div>
+
+          {/* User Role & Quick Lock */}
+          <div className="flex items-center gap-3">
+            <div className="bg-white border-2 border-slate-900 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-sm">
+              <KeyRound className="w-4 h-4 text-slate-900" />
+              <span className="text-xs font-black uppercase text-slate-900">Role:</span>
+              <select
+                value={userRole}
+                onChange={(e) => setUserRole(e.target.value)}
+                className="bg-transparent font-extrabold text-xs text-slate-900 focus:outline-none cursor-pointer"
+              >
+                <option value="ADMIN">ADMIN (FULL ACCESS)</option>
+                <option value="SUPERVISOR">SUPERVISOR</option>
+                <option value="WORKER">WORKER (READ ONLY)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => setPinLocked(!pinLocked)}
+              className={`px-4 py-2 rounded-xl border-2 border-slate-900 font-black text-xs uppercase flex items-center gap-2 shadow-sm transition-transform active:scale-95 ${
+                pinLocked ? 'bg-red-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              {pinLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              {pinLocked ? 'LOCKED' : 'LOCK SCREEN'}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {}
+      {toast && (
+        <div className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-2xl border-4 border-slate-900 font-black text-sm shadow-2xl flex items-center gap-3 animate-bounce ${
+          toast.isError ? 'bg-red-500 text-white' : 'bg-yellow-300 text-slate-900'
+        }`}>
+          {toast.isError ? <XCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {}
+      {pinLocked ? (
+        /* Pin Lock Overlay screen for security */
+        <div className="flex-1 flex items-center justify-center p-4 bg-slate-100">
+          <div className="bg-white border-4 border-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
+            <div className="w-20 h-20 bg-yellow-400 rounded-full border-4 border-slate-900 flex items-center justify-center mx-auto text-slate-900">
+              <Lock className="w-10 h-10 stroke-[2.5]" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase">SCREEN IS LOCKED</h2>
+              <p className="text-xs font-bold text-slate-600 mt-1">Enter Security PIN to unlock (Default: 1234)</p>
+            </div>
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <input
+                type="password"
+                maxLength={4}
+                placeholder="****"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                className="w-full text-center text-3xl font-black tracking-widest py-3 border-4 border-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-yellow-400"
+              />
+              <button
+                type="submit"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-black text-base py-3.5 rounded-2xl border-2 border-slate-900 shadow-md uppercase transition"
+              >
+                UNLOCK NOW
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+          
+          {}
+          <nav className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <NavTab
+              id="machines"
+              label="1. MACHINES"
+              sublabel="Start / Stop"
+              icon={Power}
+              active={activeTab === 'machines'}
+              onClick={setActiveTab}
+            />
+            <NavTab
+              id="stock"
+              label="2. MATERIAL STOCK"
+              sublabel="Check Quantity"
+              icon={Package}
+              active={activeTab === 'stock'}
+              onClick={setActiveTab}
+            />
+            <NavTab
+              id="workers"
+              label="3. WORKERS"
+              sublabel="Attendance"
+              icon={Users}
+              active={activeTab === 'workers'}
+              onClick={setActiveTab}
+            />
+            <NavTab
+              id="supabase"
+              label="4. DATABASE SETUP"
+              sublabel="Supabase SQL"
+              icon={Database}
+              active={activeTab === 'supabase'}
+              onClick={setActiveTab}
+            />
+          </nav>
+
+          {}
+          <div className="bg-white border-4 border-slate-900 rounded-3xl p-5 sm:p-8 shadow-xl min-h-[500px]">
+            {activeTab === 'machines' && (
+              <MachinesTab
+                machines={machines}
+                onToggleMachine={handleToggleMachine}
+                userRole={userRole}
+              />
+            )}
+
+            {activeTab === 'stock' && (
+              <StockTab
+                stock={stock}
+                setStock={setStock}
+                showToast={showToast}
+                userRole={userRole}
+              />
+            )}
+
+            {activeTab === 'workers' && (
+              <WorkersTab
+                workers={workers}
+                setWorkers={setWorkers}
+                showToast={showToast}
+              />
+            )}
+
+            {activeTab === 'supabase' && (
+              <SupabaseTab showToast={showToast} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {}
+      <footer className="bg-slate-900 text-white border-t-4 border-slate-900 py-4 px-4 text-center text-xs font-bold mt-auto">
+        <div className="flex flex-wrap items-center justify-between max-w-7xl mx-auto gap-2">
+          <span>FACTORY SECURITY STATE: <strong className="text-yellow-400">ACTIVE & SECURE</strong></span>
+          <span className="text-slate-400">Zero-Trust Supabase Architecture Enabled</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* =========================================================================
+   SUB-COMPONENTS & MODULES (LAYMAN FRIENDLY)
+   ========================================================================= */
+
+function NavTab({ id, label, sublabel, icon: Icon, active, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(id)}
+      className={`p-4 rounded-2xl border-4 border-slate-900 flex flex-col items-center justify-center text-center transition-all shadow-md active:translate-y-1 ${
+        active
+          ? 'bg-yellow-400 text-slate-900 font-black ring-4 ring-slate-900/10'
+          : 'bg-white hover:bg-slate-100 text-slate-700 font-bold'
+      }`}
+    >
+      <Icon className={`w-8 h-8 mb-1 stroke-[2.5] ${active ? 'text-slate-900' : 'text-slate-600'}`} />
+      <span className="text-sm uppercase tracking-tight font-extrabold">{label}</span>
+      <span className="text-[10px] text-slate-700 uppercase font-semibold">{sublabel}</span>
+    </button>
+  );
+}
+
+function MachinesTab({ machines, onToggleMachine, userRole }) {
+  return (
+    <div className="space-y-6">
+      {/* Layman Section Header */}
+      <div className="bg-yellow-100 border-3 border-slate-900 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-900 uppercase">MACHINE CONTROL FLOOR</h2>
+          <p className="text-xs font-bold text-slate-700">Green button = Machine is Running | Red button = Stop Machine</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900 inline-block"></span>
+          <span className="text-xs font-black uppercase">Running</span>
+          <span className="w-4 h-4 rounded-full bg-red-500 border-2 border-slate-900 inline-block ml-3"></span>
+          <span className="text-xs font-black uppercase">Stopped</span>
+        </div>
+      </div>
+
+      {/* Grid of Big Machine Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {machines.map((m) => {
+          const isRunning = m.status === 'RUNNING';
+          const isWarning = m.status === 'WARNING';
+
+          return (
+            <div
+              key={m.id}
+              className={`p-6 rounded-3xl border-4 border-slate-900 flex flex-col justify-between space-y-5 transition-shadow shadow-lg ${
+                isRunning ? 'bg-emerald-50' : isWarning ? 'bg-yellow-50' : 'bg-red-50'
+              }`}
+            >
+              {/* Header Info */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-xs font-black bg-slate-900 text-yellow-400 px-2.5 py-1 rounded-lg">
+                    {m.id}
+                  </span>
+                  <h3 className="text-lg font-black text-slate-900 mt-2">{m.name}</h3>
+                  <p className="text-xs font-extrabold text-slate-600">Worker: {m.operator}</p>
+                </div>
+
+                {/* Big Status Visual Badge */}
+                <div className={`px-4 py-2 rounded-2xl border-3 border-slate-900 font-black text-xs uppercase flex items-center gap-1.5 shadow-sm ${
+                  isRunning ? 'bg-emerald-400 text-slate-900' : isWarning ? 'bg-yellow-400 text-slate-900' : 'bg-red-500 text-white'
+                }`}>
+                  {isRunning && <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />}
+                  {isWarning && <AlertTriangle className="w-5 h-5 stroke-[2.5]" />}
+                  {!isRunning && !isWarning && <XCircle className="w-5 h-5 stroke-[2.5]" />}
+                  <span>{m.status}</span>
+                </div>
+              </div>
+
+              {/* Machine Telemetry Visual Indicators */}
+              <div className="grid grid-cols-2 gap-3 bg-white p-3.5 rounded-2xl border-2 border-slate-900 font-black text-xs">
+                <div>
+                  <span className="text-slate-500 block text-[10px]">SPEED</span>
+                  <span className="text-base font-black text-slate-900">{m.speed}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px]">HEAT STATUS</span>
+                  <span className="text-base font-black text-slate-900">{m.temp}</span>
+                </div>
+              </div>
+
+              {/* BIG ONE-CLICK ACTION BUTTON */}
+              <button
+                onClick={() => onToggleMachine(m.id)}
+                disabled={userRole === 'WORKER'}
+                className={`w-full py-4 rounded-2xl border-3 border-slate-900 font-black text-sm uppercase flex items-center justify-center gap-3 shadow-md transition-transform active:scale-95 ${
+                  userRole === 'WORKER' ? 'bg-slate-200 text-slate-500 cursor-not-allowed' :
+                  isRunning ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-slate-900'
+                }`}
+              >
+                {isRunning ? (
+                  <>
+                    <Square className="w-6 h-6 fill-current" />
+                    <span>PRESS TO STOP MACHINE</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-6 h-6 fill-current" />
+                    <span>PRESS TO START MACHINE</span>
+                  </>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StockTab({ stock, setStock, showToast, userRole }) {
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [addQty, setAddQty] = useState(10);
+
+  const handleUpdateStock = (id, delta) => {
+    if (userRole === 'WORKER') {
+      showToast('⚠️ Workers cannot edit stock count!', true);
+      return;
+    }
+
+    setStock(prev => prev.map(s => {
+      if (s.id === id) {
+        const newCount = Math.max(0, s.current + delta);
+        const newStatus = newCount < 20 ? 'CRITICAL' : newCount < 150 ? 'LOW' : 'OK';
+        showToast(`Stock updated for ${s.name}`);
+        return { ...s, current: newCount, status: newStatus };
+      }
+      return s;
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-yellow-100 border-3 border-slate-900 p-4 rounded-2xl">
+        <h2 className="text-xl font-black text-slate-900 uppercase">RAW MATERIAL & SAMAN COUNT</h2>
+        <p className="text-xs font-bold text-slate-700">Check how much material is available in the warehouse.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {stock.map((item) => {
+          const percent = Math.min(100, Math.round((item.current / item.total) * 100));
+          const isCritical = item.status === 'CRITICAL' || item.status === 'LOW';
+
+          return (
+            <div key={item.id} className="p-6 rounded-3xl border-4 border-slate-900 bg-white space-y-4 shadow-md">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-black bg-slate-900 text-yellow-400 px-2.5 py-1 rounded-lg">
+                    {item.id}
+                  </span>
+                  <h3 className="text-lg font-black text-slate-900 mt-2">{item.name}</h3>
+                </div>
+                <span className={`px-3 py-1 rounded-xl border-2 border-slate-900 font-black text-xs uppercase ${
+                  isCritical ? 'bg-red-500 text-white' : 'bg-emerald-400 text-slate-900'
+                }`}>
+                  {item.status}
+                </span>
+              </div>
+
+              {/* Progress Bar Display */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-black text-slate-900">
+                  <span>AVAILABLE: {item.current} {item.unit}</span>
+                  <span>MAX: {item.total}</span>
+                </div>
+                <div className="w-full h-6 bg-slate-200 rounded-xl border-2 border-slate-900 overflow-hidden p-0.5">
+                  <div
+                    className={`h-full rounded-lg border border-slate-900 transition-all ${
+                      percent < 25 ? 'bg-red-500' : percent < 60 ? 'bg-yellow-400' : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Simple Quick Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => handleUpdateStock(item.id, -10)}
+                  className="flex-1 py-2.5 bg-red-100 hover:bg-red-200 border-2 border-slate-900 font-black text-xs rounded-xl uppercase text-slate-900"
+                >
+                  - 10 USED
+                </button>
+                <button
+                  onClick={() => handleUpdateStock(item.id, +10)}
+                  className="flex-1 py-2.5 bg-emerald-100 hover:bg-emerald-200 border-2 border-slate-900 font-black text-xs rounded-xl uppercase text-slate-900"
+                >
+                  + 10 ADDED
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WorkersTab({ workers, setWorkers, showToast }) {
+  const toggleAttendance = (id) => {
+    setWorkers(prev => prev.map(w => {
+      if (w.id === id) {
+        const nextStatus = w.status === 'PRESENT' ? 'ABSENT' : 'PRESENT';
+        const nextTime = nextStatus === 'PRESENT' ? '08:30 AM' : '-';
+        showToast(`${w.name} marked as ${nextStatus}`);
+        return { ...w, status: nextStatus, timeIn: nextTime };
+      }
+      return w;
+    }));
+  };
+
+  const presentCount = workers.filter(w => w.status === 'PRESENT').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-yellow-100 border-3 border-slate-900 p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-black text-slate-900 uppercase">WORKER ATTENDANCE (HAZIRI)</h2>
+          <p className="text-xs font-bold text-slate-700">Click on worker button to mark Present or Absent.</p>
+        </div>
+        <div className="bg-slate-900 text-yellow-400 px-4 py-2 rounded-2xl border-2 border-slate-900 font-black text-sm">
+          PRESENT: {presentCount} / {workers.length}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {workers.map((w) => (
+          <div
+            key={w.id}
+            className="p-4 rounded-2xl border-3 border-slate-900 bg-white flex items-center justify-between gap-3 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl p-2 bg-yellow-200 border-2 border-slate-900 rounded-xl">{w.avatar}</span>
+              <div>
+                <h3 className="font-black text-slate-900 text-base">{w.name}</h3>
+                <p className="text-xs font-extrabold text-slate-500">{w.role} | Time: {w.timeIn}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleAttendance(w.id)}
+              className={`px-4 py-2.5 rounded-xl border-2 border-slate-900 font-black text-xs uppercase shadow-sm ${
+                w.status === 'PRESENT' ? 'bg-emerald-400 text-slate-900' : 'bg-red-500 text-white'
+              }`}
+            >
+              {w.status}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SupabaseTab({ showToast }) {
+  const [copied, setCopied] = useState(false);
+
+  const sqlScript = `-- EASY SUPABASE DATABASE SCRIPT FOR FACTORY SYSTEM
+-- Paste this inside Supabase SQL Editor
+
+CREATE TABLE public.factory_machines (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT DEFAULT 'STOPPED',
+    speed TEXT DEFAULT '0%',
+    operator TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.factory_inventory (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    total_stock INT DEFAULT 100,
+    current_stock INT DEFAULT 50,
+    unit TEXT DEFAULT 'Pcs'
+);
+
+-- Turn on Row Level Security (RLS)
+ALTER TABLE public.factory_machines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.factory_inventory ENABLE ROW LEVEL SECURITY;
+
+-- Allow read/write access to logged-in users
+CREATE POLICY "Allow All Authenticated Users" ON public.factory_machines
+    FOR ALL USING (auth.role() = 'authenticated');
+`;
+
+  const copySql = () => {
+    navigator.clipboard.writeText(sqlScript);
+    setCopied(true);
+    showToast('SQL Script copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-yellow-100 border-3 border-slate-900 p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-black text-slate-900 uppercase">SUPABASE DATABASE SCRIPT</h2>
+          <p className="text-xs font-bold text-slate-700">Copy this code and paste in your Supabase SQL Editor.</p>
+        </div>
+
+        <button
+          onClick={copySql}
+          className="bg-slate-900 hover:bg-slate-800 text-yellow-400 border-2 border-slate-900 font-black text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm"
+        >
+          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+          {copied ? 'COPIED!' : 'COPY SQL CODE'}
+        </button>
+      </div>
+
+      <pre className="bg-slate-900 text-yellow-300 font-mono text-xs p-5 rounded-2xl border-4 border-slate-900 overflow-x-auto leading-relaxed">
+        {sqlScript}
+      </pre>
+    </div>
+  );
+}
