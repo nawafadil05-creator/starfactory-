@@ -1,22 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Activity, Shield, Database, Users, Package, Sliders, 
   AlertTriangle, Lock, Play, Square, Thermometer, Gauge, 
   X, Star, Settings, UserPlus, Key, Eye, Phone, Home, User, 
   ShoppingCart, Calendar, MapPin, History, FileText, StickyNote,
-  Video, Camera, Maximize2, Radio, BookOpen, PlusCircle, DollarSign,
-  MinusCircle
+  Video, Camera, Radio, BookOpen, PlusCircle, DollarSign
 } from 'lucide-react';
+
+// Initialize Supabase Client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''; 
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('khata');
   const [role, setRole] = useState('ADMIN');
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState(false);
   const [selectedRole, setSelectedRole] = useState('ADMIN');
 
-  // Khata Security State
+  // --- Settings & User Management State ---
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [adminPasscode, setAdminPasscode] = useState('1234');
+  const [newAdminPassInput, setNewAdminPassInput] = useState('');
+  const [passChangeSuccess, setPassChangeSuccess] = useState(false);
+
+  // Users State (from Supabase)
+  const [usersList, setUsersList] = useState([]);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState('SUPERVISOR');
+  const [newUserCode, setNewUserCode] = useState('');
+  const [newUserPass, setNewUserPass] = useState('');
+
+  // --- Khata Security State ---
   const [isKhataUnlocked, setIsKhataUnlocked] = useState(false);
   const [khataPasscode, setKhataPasscode] = useState('7890');
   const [inputKhataCode, setInputKhataCode] = useState('');
@@ -31,7 +49,7 @@ export default function App() {
   // Reminders State
   const [reminderNote, setReminderNote] = useState('Night shift Maintenance Audit at 11:00 PM');
 
-  // Khata Modals & Data
+  // Khata Modals & Data State (from Supabase)
   const [selectedKhataEntry, setSelectedKhataEntry] = useState(null);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [newPaymentAmount, setNewPaymentAmount] = useState('');
@@ -40,160 +58,94 @@ export default function App() {
   const [saveAuthCodeInput, setSaveAuthCodeInput] = useState('');
   const [saveCodeError, setSaveCodeError] = useState(false);
 
-  const [khataLedger, setKhataLedger] = useState([
-    {
-      orderId: 'ORD-RCV-901',
-      orderName: 'Industrial Valve Assemblies Batch',
-      sellerName: 'Crescent Engineering Corp',
-      totalQuantityShipped: 150,
-      quantityPaidFor: 100,
-      totalOrderAmount: 850000,
-      advanceGiven: 200000,
-      totalPaidAmount: 550000,
-      transactions: [
-        { date: '2026-09-10', type: 'Advance Payment', amount: 200000, paidQty: 35, note: 'Initial Order Booking Advance' },
-        { date: '2026-09-25', type: 'Partial Payment', amount: 350000, paidQty: 65, note: 'Dispatch Shipment Clearance' }
-      ]
-    },
-    {
-      orderId: 'ORD-RCV-902',
-      orderName: 'Precision Gear Sets Heavy Duty',
-      sellerName: 'Sialkot Machinery Works',
-      totalQuantityShipped: 80,
-      quantityPaidFor: 30,
-      totalOrderAmount: 320000,
-      advanceGiven: 50000,
-      totalPaidAmount: 120000,
-      transactions: [
-        { date: '2026-09-15', type: 'Advance Payment', amount: 50000, paidQty: 10, note: 'Token Advance' },
-        { date: '2026-10-01', type: 'Installment', amount: 70000, paidQty: 20, note: 'Second Batch Payment' }
-      ]
-    }
-  ]);
+  const [khataLedger, setKhataLedger] = useState([]);
 
-  // Order Management State & Modals
+  // Sub-tabs State
+  const [inventorySubTab, setInventorySubTab] = useState('raw');
+  const [workerShiftTab, setWorkerShiftTab] = useState('DAY');
   const [ordersSubTab, setOrdersSubTab] = useState('orders_made');
+
+  // Selected Detail Modals
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
-
-  const [ordersMade] = useState([
-    {
-      orderId: 'ORD-MADE-101',
-      type: 'Raw Material Purchase',
-      itemId: 'RM-BRASS',
-      itemName: 'Brass Alloy Ingot Shipment',
-      quantity: '1,200 kg',
-      city: 'Gujranwala',
-      supplierName: 'Punjab Steel Mills Vendor',
-      contactPhone: '+92 301 5551234',
-      address: 'Industrial Estate Phase 2, Gujranwala',
-      totalAmount: 'Rs 450,000',
-      status: 'Ordered / In Transit'
-    }
-  ]);
-
-  const [ordersReceived] = useState([
-    {
-      orderId: 'ORD-RCV-901',
-      type: 'Finished Product Sale',
-      itemId: 'MI-VALVE',
-      itemName: 'Industrial Valve Assemblies',
-      quantity: '150 units',
-      city: 'Lahore',
-      customerName: 'Crescent Engineering Corp',
-      contactPhone: '+92 300 7776655',
-      address: 'Kot Lakhpat Industrial Area, Lahore',
-      totalAmount: 'Rs 850,000',
-      status: 'Ready for Dispatch'
-    }
-  ]);
-
-  // CCTV State
-  const [expandedCamFeed, setExpandedCamFeed] = useState(null);
-  const [cctvCameras] = useState([
-    { id: 'CAM-01', location: 'Main Cutting Floor', status: 'ONLINE', fps: 30, ip: '192.168.1.101', activeWorker: 'Ali Khan (Main Cutter 01)' },
-    { id: 'CAM-02', location: 'Packaging & Logistics Gate', status: 'ONLINE', fps: 28, ip: '192.168.1.102', activeWorker: 'Usman Raza (Packing Box 02)' },
-    { id: 'CAM-03', location: 'Raw Material Warehouse', status: 'ONLINE', fps: 30, ip: '192.168.1.103', activeWorker: 'Security Supervisor' },
-    { id: 'CAM-04', location: 'Robotics Assembly Line', status: 'ONLINE', fps: 60, ip: '192.168.1.104', activeWorker: 'Automated Bot A1' }
-  ]);
-
-  // Machine Floor State
-  const [machines, setMachines] = useState([
-    { id: 'M1', name: 'Main Cutter 01', type: 'Cutting Unit', worker: 'Ali Khan', status: 'RUNNING', speed: 85, temp: 42, alert: null },
-    { id: 'M2', name: 'Packing Box 02', type: 'Packaging Unit', worker: 'Usman Raza', status: 'RUNNING', speed: 92, temp: 38, alert: null },
-    { id: 'M3', name: 'Welder Station 03', type: 'Welding Unit', worker: 'Zohaib Hassan', status: 'STOPPED', speed: 0, temp: 25, alert: 'Heat Threshold' },
-    { id: 'M4', name: 'Label Printer 04', type: 'Printing Unit', worker: 'Ahmed Noor', status: 'STANDBY', speed: 0, temp: 28, alert: null },
-    { id: 'M5', name: 'Assembly Arm 05', type: 'Robotics', worker: 'Automated Bot A1', status: 'MAINTENANCE', speed: 0, temp: 22, alert: 'System Audit' },
-  ]);
-
-  // Inventory / Materials State
-  const [rawMaterials] = useState([
-    { id: 'RM-BRASS', name: 'Brass Alloy', category: 'Metals', stock: 500, unit: 'kg', preOrdered: 200, rawWeight: '1.2 Tons (1,200 kg)' },
-    { id: 'RM-ALUM', name: 'Aluminum 6061', category: 'Metals', stock: 1200, unit: 'kg', preOrdered: 500, rawWeight: '2.5 Tons (2,500 kg)' },
-    { id: 'RM-STEEL', name: 'Stainless Steel 304', category: 'Metals', stock: 850, unit: 'kg', preOrdered: 0, rawWeight: '1.8 Tons (1,800 kg)' },
-    { id: 'RM-PLAS-A', name: 'Plastic Resin - Grade A', category: 'Plastics', stock: 200, unit: 'kg', preOrdered: 100, rawWeight: '0.5 Tons (500 kg)' },
-  ]);
-
-  // Worker & Attendance State
   const [selectedWorkerDetail, setSelectedWorkerDetail] = useState(null);
-  const [workersList, setWorkersList] = useState([
-    { 
-      id: 'W-101', 
-      name: 'Ali Khan', 
-      role: 'Machine Operator', 
-      shiftType: 'DAY', 
-      assigned: 'Main Cutter 01', 
-      phone: '+92 300 1234567',
-      guardianName: 'Tariq Khan',
-      address: 'Street 4, Sector G-9, Islamabad',
-      dailyRate: 500,
-      overtimeHours: 12,
-      payAdjustment: 0,
-      todayStatus: 'P',
-      attendance: ['P', 'P', 'P', 'P', 'P', 'A', 'P'],
-    },
-    { 
-      id: 'W-102', 
-      name: 'Usman Raza', 
-      role: 'Packaging Tech', 
-      shiftType: 'DAY', 
-      assigned: 'Packing Box 02', 
-      phone: '+92 312 9876543',
-      guardianName: 'Muhammad Raza',
-      address: 'House 12, Block B, Lahore',
-      dailyRate: 500,
-      overtimeHours: 6,
-      payAdjustment: -200,
-      todayStatus: 'P',
-      attendance: ['P', 'P', 'P', 'P', 'P', 'P', 'P'],
-    },
-    { 
-      id: 'W-103', 
-      name: 'Zohaib Hassan', 
-      role: 'Welding Specialist', 
-      shiftType: 'NIGHT', 
-      assigned: 'Welder Station 03', 
-      phone: '+92 333 4567890',
-      guardianName: 'Hassan Mahmood',
-      address: 'Near Main Market, Faisalabad',
-      dailyRate: 500,
-      overtimeHours: 0,
-      payAdjustment: 0,
-      todayStatus: 'A',
-      attendance: ['P', 'A', 'P', 'P', 'P', 'P', 'A'],
-    },
-  ]);
 
-  // Logs
-  const [logs] = useState([
-    { id: 1, time: '13:14:10', type: 'INFO', message: 'Main Cutter 01 speed calibrated to 85% by operator Ali Khan' },
-    { id: 2, time: '12:45:22', type: 'WARNING', message: 'Industrial Adhesive stock dipped below threshold (180 L)' },
-    { id: 3, time: '11:02:00', type: 'SECURITY', message: 'Khata financial record modified and authorized via passcode' },
-  ]);
+  // Orders Management Data State (from Supabase)
+  const [ordersMade, setOrdersMade] = useState([]);
+  const [ordersReceived, setOrdersReceived] = useState([]);
 
-  // --- LOGIC HANDLERS ---
+  // CCTV State (from Supabase)
+  const [cctvCameras, setCctvCameras] = useState([]);
 
+  // Machine Floor State (from Supabase)
+  const [machines, setMachines] = useState([]);
+
+  // Inventory / Raw Materials & Made Items State (from Supabase)
+  const [rawMaterials, setRawMaterials] = useState([]);
+  const [madeItems, setMadeItems] = useState([]);
+
+  // Worker & Attendance State (from Supabase)
+  const [workersList, setWorkersList] = useState([]);
+
+  // Logs State (from Supabase)
+  const [logs, setLogs] = useState([]);
+
+  // Loading & Error states for DB fetches
+  const [isLoading, setIsLoading] = useState(true);
+
+  // --- SUPABASE FETCH EFFECT ---
+  useEffect(() => {
+    async function fetchAllData() {
+      setIsLoading(true);
+      try {
+        const [
+          { data: users },
+          { data: khata },
+          { data: madeOrders },
+          { data: receivedOrders },
+          { data: cctv },
+          { data: machineData },
+          { data: rawMat },
+          { data: madeItms },
+          { data: workers },
+          { data: systemLogs }
+        ] = await Promise.all([
+          supabase.from('users').select('*'),
+          supabase.from('khata_ledger').select('*'),
+          supabase.from('orders_made').select('*'),
+          supabase.from('orders_received').select('*'),
+          supabase.from('cctv_cameras').select('*'),
+          supabase.from('machines').select('*'),
+          supabase.from('raw_materials').select('*'),
+          supabase.from('made_items').select('*'),
+          supabase.from('workers').select('*'),
+          supabase.from('logs').select('*')
+        ]);
+
+        if (users) setUsersList(users);
+        if (khata) setKhataLedger(khata);
+        if (madeOrders) setOrdersMade(madeOrders);
+        if (receivedOrders) setOrdersReceived(receivedOrders);
+        if (cctv) setCctvCameras(cctv);
+        if (machineData) setMachines(machineData);
+        if (rawMat) setRawMaterials(rawMat);
+        if (madeItms) setMadeItems(madeItms);
+        if (workers) setWorkersList(workers);
+        if (systemLogs) setLogs(systemLogs);
+      } catch (err) {
+        console.error('Error fetching data from Supabase:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAllData();
+  }, []);
+
+  // --- HANDLERS & CALCULATIONS ---
   const activeMachinesCount = machines.filter(m => m.status === 'RUNNING').length;
-  const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) / machines.length);
+  const avgEfficiency = machines.length > 0 
+    ? Math.round(machines.reduce((acc, m) => acc + (m.speed || 0), 0) / machines.length)
+    : 0;
 
   const handleKhataUnlock = (e) => {
     e.preventDefault();
@@ -231,7 +183,7 @@ export default function App() {
     }
   };
 
-  const handleAddPaymentTransaction = (e) => {
+  const handleAddPaymentTransaction = async (e) => {
     e.preventDefault();
     if (saveAuthCodeInput !== khataPasscode) {
       setSaveCodeError(true);
@@ -243,14 +195,14 @@ export default function App() {
     const addedAmount = Number(newPaymentAmount);
     const addedQty = Number(newPaidQty || 0);
 
-    setKhataLedger(prev => prev.map(entry => {
+    const updatedLedger = khataLedger.map(entry => {
       if (entry.orderId === selectedKhataEntry.orderId) {
         return {
           ...entry,
-          totalPaidAmount: entry.totalPaidAmount + addedAmount,
-          quantityPaidFor: entry.quantityPaidFor + addedQty,
+          totalPaidAmount: (entry.totalPaidAmount || 0) + addedAmount,
+          quantityPaidFor: (entry.quantityPaidFor || 0) + addedQty,
           transactions: [
-            ...entry.transactions,
+            ...(entry.transactions || []),
             {
               date: new Date().toISOString().split('T')[0],
               type: 'Payment Received',
@@ -262,7 +214,22 @@ export default function App() {
         };
       }
       return entry;
-    }));
+    });
+
+    setKhataLedger(updatedLedger);
+
+    // Sync back to Supabase
+    const targetEntry = updatedLedger.find(e => e.orderId === selectedKhataEntry.orderId);
+    if (targetEntry) {
+      await supabase
+        .from('khata_ledger')
+        .update({
+          totalPaidAmount: targetEntry.totalPaidAmount,
+          quantityPaidFor: targetEntry.quantityPaidFor,
+          transactions: targetEntry.transactions
+        })
+        .eq('orderId', targetEntry.orderId);
+    }
 
     setNewPaymentAmount('');
     setNewPaidQty('');
@@ -273,57 +240,95 @@ export default function App() {
     setSelectedKhataEntry(null);
   };
 
-  const markWorkerAttendance = (workerId, newStatus) => {
+  const markWorkerAttendance = async (workerId, newStatus) => {
     if (role === 'WORKER') return;
-    setWorkersList(prev => prev.map(w => {
+    const updated = workersList.map(w => {
       if (w.id === workerId) {
-        const updatedAttendance = [...w.attendance];
+        const updatedAttendance = [...(w.attendance || [])];
         updatedAttendance[updatedAttendance.length - 1] = newStatus;
         return { ...w, todayStatus: newStatus, attendance: updatedAttendance };
       }
       return w;
-    }));
+    });
+    setWorkersList(updated);
+
+    const target = updated.find(w => w.id === workerId);
+    if (target) {
+      await supabase.from('workers').update({
+        todayStatus: target.todayStatus,
+        attendance: target.attendance
+      }).eq('id', workerId);
+    }
   };
 
-  const adjustOvertime = (workerId, adjustment) => {
+  const adjustOvertime = async (workerId, adjustment) => {
     if (role === 'WORKER') return;
-    setWorkersList(prev => prev.map(w => {
+    const updated = workersList.map(w => {
       if (w.id === workerId) {
-        return { ...w, overtimeHours: Math.max(0, w.overtimeHours + adjustment) };
+        return { ...w, overtimeHours: Math.max(0, (w.overtimeHours || 0) + adjustment) };
       }
       return w;
-    }));
+    });
+    setWorkersList(updated);
+
+    const target = updated.find(w => w.id === workerId);
+    if (target) {
+      await supabase.from('workers').update({
+        overtimeHours: target.overtimeHours
+      }).eq('id', workerId);
+    }
   };
 
-  const adjustPay = (workerId, adjustment) => {
+  const adjustPay = async (workerId, adjustment) => {
     if (role === 'WORKER') return;
-    setWorkersList(prev => prev.map(w => {
+    const updated = workersList.map(w => {
       if (w.id === workerId) {
-        return { ...w, payAdjustment: w.payAdjustment + adjustment };
+        return { ...w, payAdjustment: (w.payAdjustment || 0) + adjustment };
       }
       return w;
-    }));
+    });
+    setWorkersList(updated);
+
+    const target = updated.find(w => w.id === workerId);
+    if (target) {
+      await supabase.from('workers').update({
+        payAdjustment: target.payAdjustment
+      }).eq('id', workerId);
+    }
   };
 
-  const toggleMachineStatus = (id) => {
+  const toggleMachineStatus = async (id) => {
     if (role === 'WORKER') return;
-    setMachines(prev => prev.map(m => {
+    const updated = machines.map(m => {
       if (m.id === id) {
         const nextStatus = m.status === 'RUNNING' ? 'STOPPED' : 'RUNNING';
         return { ...m, status: nextStatus, speed: nextStatus === 'RUNNING' ? 75 : 0 };
       }
       return m;
-    }));
+    });
+    setMachines(updated);
+
+    const target = updated.find(m => m.id === id);
+    if (target) {
+      await supabase.from('machines').update({
+        status: target.status,
+        speed: target.speed
+      }).eq('id', id);
+    }
   };
 
-  const handleSpeedChange = (id, newSpeed) => {
+  const handleSpeedChange = async (id, newSpeed) => {
     if (role === 'WORKER') return;
-    setMachines(prev => prev.map(m => id === m.id ? { ...m, speed: Number(newSpeed) } : m));
+    const speedVal = Number(newSpeed);
+    const updated = machines.map(m => id === m.id ? { ...m, speed: speedVal } : m);
+    setMachines(updated);
+
+    await supabase.from('machines').update({ speed: speedVal }).eq('id', id);
   };
 
   const handleUnlock = (e) => {
     e.preventDefault();
-    let correctPasscode = selectedRole === 'ADMIN' ? '1234' : selectedRole === 'SUPERVISOR' ? '5678' : '9012';
+    let correctPasscode = selectedRole === 'ADMIN' ? adminPasscode : selectedRole === 'SUPERVISOR' ? '5678' : '9012';
     if (passcode === correctPasscode) {
       setRole(selectedRole);
       setIsLocked(false);
@@ -334,11 +339,47 @@ export default function App() {
     }
   };
 
-  const calculateEarnings = (attendanceArr, rate, otHours = 0, payAdjust = 0) => {
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!newUserName || !newUserCode || !newUserPass) return;
+    
+    const newUserObj = {
+      name: newUserName,
+      role: newUserRole,
+      secretCode: newUserCode,
+      secretPassword: newUserPass
+    };
+
+    const { data, error } = await supabase.from('users').insert([newUserObj]).select();
+
+    if (data && data.length > 0) {
+      setUsersList(prev => [...prev, data[0]]);
+    } else {
+      setUsersList(prev => [...prev, { ...newUserObj, id: Date.now() }]);
+    }
+
+    setNewUserName('');
+    setNewUserCode('');
+    setNewUserPass('');
+  };
+
+  const handleChangeAdminPass = (e) => {
+    e.preventDefault();
+    if (newAdminPassInput.trim()) {
+      setAdminPasscode(newAdminPassInput);
+      setNewAdminPassInput('');
+      setPassChangeSuccess(true);
+      setTimeout(() => setPassChangeSuccess(false), 3000);
+    }
+  };
+
+  const calculateEarnings = (attendanceArr = [], rate = 0, otHours = 0, payAdjust = 0) => {
     const presentDays = attendanceArr.filter(day => day === 'P' || day === 'OT').length;
     const otBonus = otHours * 100;
     return (presentDays * rate) + otBonus + payAdjust;
   };
+
+  const filteredWorkers = workersList.filter(w => w.shiftType === workerShiftTab || workerShiftTab === 'OVERTIME');
 
   if (isLocked) {
     return (
@@ -358,10 +399,10 @@ export default function App() {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium text-slate-700"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium text-slate-700 outline-none"
               >
                 <option value="ADMIN">Administrator</option>
-                <option value="SUPERVISOR">Manager / Supervisor</option>
+                <option value="SUPERVISOR">Supervisor</option>
                 <option value="WORKER">Worker (Read Only)</option>
               </select>
             </div>
@@ -373,7 +414,7 @@ export default function App() {
                 placeholder="Enter Access Passcode"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none"
               />
             </div>
 
@@ -383,6 +424,10 @@ export default function App() {
               Unlock Access
             </button>
           </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-200 text-center text-xs text-slate-500">
+            Star Factory OS • Secure Access Control Architecture
+          </div>
         </div>
       </div>
     );
@@ -411,6 +456,21 @@ export default function App() {
               {role === 'ADMIN' ? 'Administrator' : role === 'SUPERVISOR' ? 'Supervisor' : 'Worker'}
             </span>
           </div>
+
+          <button
+            onClick={() => {
+              if (role === 'ADMIN') {
+                setIsSettingsOpen(true);
+              } else {
+                alert('Only Administrator can access Control Settings.');
+              }
+            }}
+            className="p-1.5 bg-blue-900 hover:bg-blue-800 border border-blue-700 rounded-lg text-amber-400 text-xs font-semibold flex items-center gap-1"
+            title="Admin Settings"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
 
           <button onClick={() => setIsLocked(true)} className="p-1.5 bg-red-950 hover:bg-red-900 border border-red-800 rounded-lg text-red-300">
             <Lock className="w-4 h-4" />
@@ -487,7 +547,7 @@ export default function App() {
 
           <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 text-slate-400 text-[10px]">
             <div className="flex items-center gap-1.5 text-amber-400 font-semibold"><Shield className="w-3.5 h-3.5" /> Security Guarded</div>
-            <p className="mt-1">Khata Code: <span className="text-amber-400 font-mono font-bold">Protected (7890)</span></p>
+            <p className="mt-1">Khata Code: <span className="text-amber-400 font-mono font-bold">Protected ({khataPasscode})</span></p>
           </div>
         </aside>
 
@@ -615,7 +675,32 @@ export default function App() {
           {/* TAB: WORKER ROSTER */}
           {activeTab === 'workers' && (
             <div className="space-y-4">
-              <h2 className="text-xs font-bold text-slate-800 uppercase">Worker Shift Roster</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-bold text-slate-800 uppercase">Worker Shift Roster</h2>
+                <span className="text-[11px] text-slate-500">Structured personnel roster and assignees</span>
+              </div>
+
+              <div className="flex border-b border-slate-200 gap-4">
+                <button
+                  onClick={() => setWorkerShiftTab('DAY')}
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${workerShiftTab === 'DAY' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Day Shift
+                </button>
+                <button
+                  onClick={() => setWorkerShiftTab('NIGHT')}
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${workerShiftTab === 'NIGHT' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Night Shift
+                </button>
+                <button
+                  onClick={() => setWorkerShiftTab('OVERTIME')}
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${workerShiftTab === 'OVERTIME' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Overtime
+                </button>
+              </div>
+
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-xs table-fixed">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
@@ -627,7 +712,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-700">
-                    {workersList.map((w) => (
+                    {filteredWorkers.map((w) => (
                       <tr key={w.id} className="hover:bg-slate-50">
                         <td className="p-2.5 font-semibold text-slate-900">{w.name}</td>
                         <td className="p-2.5 text-slate-600">{w.role}</td>
@@ -747,27 +832,76 @@ export default function App() {
           {activeTab === 'inventory' && (
             <div className="space-y-4">
               <h2 className="text-xs font-bold text-slate-800 uppercase">Materials & Stock Inventory</h2>
+
+              <div className="flex border-b border-slate-200 gap-4">
+                <button
+                  onClick={() => setInventorySubTab('raw')}
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${inventorySubTab === 'raw' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Raw Materials
+                </button>
+                <button
+                  onClick={() => setInventorySubTab('made')}
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${inventorySubTab === 'made' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Made Items (Inventory)
+                </button>
+              </div>
+
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
                     <tr>
-                      <th className="p-3">Item Name</th>
-                      <th className="p-3">Material Category</th>
-                      <th className="p-3 font-mono">Stock Quantity Available</th>
+                      <th className="p-3">Item ID / Name</th>
+                      <th className="p-3">Category</th>
+                      <th className="p-3 font-mono">Stock Quantity</th>
                       <th className="p-3 font-mono">Pre-ordered Stock</th>
-                      <th className="p-3 font-mono">Raw Stock Weight</th>
+                      <th className="p-3 font-mono">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-700">
-                    {rawMaterials.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-900">{item.name}</td>
-                        <td className="p-3 text-slate-500">{item.category}</td>
-                        <td className="p-3 font-mono font-bold text-emerald-700">{item.stock} {item.unit}</td>
-                        <td className="p-3 font-mono font-bold text-amber-600">{item.preOrdered} {item.unit}</td>
-                        <td className="p-3 font-mono font-bold text-slate-800">{item.rawWeight}</td>
-                      </tr>
-                    ))}
+                    {inventorySubTab === 'raw' ? (
+                      rawMaterials.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="p-3">
+                            <span className="font-bold text-slate-900 block">{item.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{item.id}</span>
+                          </td>
+                          <td className="p-3 text-slate-500">{item.category}</td>
+                          <td className="p-3 font-mono font-bold text-emerald-700">{item.stock} {item.unit}</td>
+                          <td className="p-3 font-mono font-bold text-amber-600">{item.preOrdered} {item.unit}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              item.status === 'OPTIMAL' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              item.status === 'LOW' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                              'bg-red-100 text-red-800 border border-red-300'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      madeItems.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="p-3">
+                            <span className="font-bold text-slate-900 block">{item.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{item.id}</span>
+                          </td>
+                          <td className="p-3 text-slate-500">{item.category}</td>
+                          <td className="p-3 font-mono font-bold text-emerald-700">{item.stock} {item.unit}</td>
+                          <td className="p-3 font-mono text-slate-400">-</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              item.status === 'OPTIMAL' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -779,83 +913,84 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-slate-800 uppercase">Worker Attendance & Overtime Tracker</h2>
-                <span className="text-[11px] text-slate-500">Daily Attendance & Financial Adjustments</span>
+                <span className="text-[11px] text-slate-500">
+                  {role === 'WORKER' ? 'Showing Your 7-Day Attendance History' : 'Full Month (30-Day) System Attendance Ledger'}
+                </span>
               </div>
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
-                    <tr>
-                      <th className="p-3">Worker Name</th>
-                      <th className="p-3">Shift</th>
-                      <th className="p-3 text-center">7-Day Grid</th>
-                      <th className="p-3 text-center">Overtime</th>
-                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Mark Status</th>}
-                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Overtime (+ / -)</th>}
-                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Pay Adjustment (+ / -)</th>}
-                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3">Total Earnings</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-slate-700">
-                    {workersList.map((w) => {
-                      const totalEarnings = calculateEarnings(w.attendance, w.dailyRate, w.overtimeHours, w.payAdjustment);
-                      return (
-                        <tr key={w.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold text-slate-900">{w.name}</td>
-                          <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold">{w.shiftType}</span></td>
-                          <td className="p-3">
-                            <div className="flex justify-center gap-1">
-                              {w.attendance.map((st, i) => (
-                                <span key={i} className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${st === 'P' ? 'bg-emerald-100 text-emerald-800' : st === 'OT' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
-                                  {st}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="p-3 text-center font-mono font-bold text-purple-700">{w.overtimeHours} hrs</td>
-                          
-                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
-                            <td className="p-3 text-center">
-                              <div className="flex justify-center gap-1">
-                                <button onClick={() => markWorkerAttendance(w.id, 'P')} className="px-2 py-1 bg-emerald-600 text-white font-bold rounded text-[10px]">P</button>
-                                <button onClick={() => markWorkerAttendance(w.id, 'A')} className="px-2 py-1 bg-red-600 text-white font-bold rounded text-[10px]">A</button>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                      <tr>
+                        <th className="p-3">Worker Name</th>
+                        <th className="p-3">Shift</th>
+                        <th className="p-3 text-center">
+                          {role === 'WORKER' ? '7-Day Record' : '30-Day Attendance Grid'}
+                        </th>
+                        <th className="p-3 text-center">Overtime</th>
+                        {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Mark Status</th>}
+                        {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Overtime (+ / -)</th>}
+                        {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Pay Adjustment</th>}
+                        {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3">Total Earnings</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-slate-700">
+                      {workersList.map((w) => {
+                        const isWorkerRole = role === 'WORKER';
+                        const attendanceData = (isWorkerRole ? w.attendance : w.monthlyAttendance) || [];
+                        const totalEarnings = calculateEarnings(w.attendance, w.dailyRate, w.overtimeHours, w.payAdjustment);
+
+                        return (
+                          <tr key={w.id} className="hover:bg-slate-50">
+                            <td className="p-3 font-semibold text-slate-900">{w.name}</td>
+                            <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold">{w.shiftType}</span></td>
+                            <td className="p-3">
+                              <div className="flex justify-center flex-wrap gap-1 max-w-xs mx-auto">
+                                {attendanceData.map((st, i) => (
+                                  <span key={i} className={`w-3.5 h-3.5 flex items-center justify-center rounded text-[8px] font-bold ${st === 'P' ? 'bg-emerald-100 text-emerald-800' : st === 'OT' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
+                                    {st}
+                                  </span>
+                                ))}
                               </div>
                             </td>
-                          )}
+                            <td className="p-3 text-center font-mono font-bold text-purple-700">{w.overtimeHours} hrs</td>
+                            
+                            {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                              <td className="p-3 text-center">
+                                <div className="flex justify-center gap-1">
+                                  <button onClick={() => markWorkerAttendance(w.id, 'P')} className="px-2 py-1 bg-emerald-600 text-white font-bold rounded text-[10px]">P</button>
+                                  <button onClick={() => markWorkerAttendance(w.id, 'A')} className="px-2 py-1 bg-red-600 text-white font-bold rounded text-[10px]">A</button>
+                                </div>
+                              </td>
+                            )}
 
-                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
-                            <td className="p-3 text-center">
-                              <div className="flex justify-center gap-1">
-                                <button onClick={() => adjustOvertime(w.id, 1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">
-                                  +OT
-                                </button>
-                                <button onClick={() => adjustOvertime(w.id, -1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">
-                                  -OT
-                                </button>
-                              </div>
-                            </td>
-                          )}
+                            {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                              <td className="p-3 text-center">
+                                <div className="flex justify-center gap-1">
+                                  <button onClick={() => adjustOvertime(w.id, 1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">+OT</button>
+                                  <button onClick={() => adjustOvertime(w.id, -1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">-OT</button>
+                                </div>
+                              </td>
+                            )}
 
-                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
-                            <td className="p-3 text-center">
-                              <div className="flex justify-center gap-1">
-                                <button onClick={() => adjustPay(w.id, 100)} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded hover:bg-emerald-200 text-[10px]">
-                                  +Pay
-                                </button>
-                                <button onClick={() => adjustPay(w.id, -100)} className="px-1.5 py-0.5 bg-red-100 text-red-800 font-bold rounded hover:bg-red-200 text-[10px]">
-                                  -Pay
-                                </button>
-                              </div>
-                            </td>
-                          )}
+                            {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                              <td className="p-3 text-center">
+                                <div className="flex justify-center gap-1">
+                                  <button onClick={() => adjustPay(w.id, 100)} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded hover:bg-emerald-200 text-[10px]">+Pay</button>
+                                  <button onClick={() => adjustPay(w.id, -100)} className="px-1.5 py-0.5 bg-red-100 text-red-800 font-bold rounded hover:bg-red-200 text-[10px]">-Pay</button>
+                                </div>
+                              </td>
+                            )}
 
-                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
-                            <td className="p-3 font-bold font-mono text-emerald-700">Rs {totalEarnings}</td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                              <td className="p-3 font-bold font-mono text-emerald-700">Rs {totalEarnings}</td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -874,12 +1009,12 @@ export default function App() {
                   <form onSubmit={handleKhataUnlock} className="space-y-3">
                     <input
                       type="password"
-                      placeholder="Enter Khata Passcode (7890)"
+                      placeholder={`Enter Khata Passcode (${khataPasscode})`}
                       value={inputKhataCode}
                       onChange={(e) => setInputKhataCode(e.target.value)}
                       className="w-full px-4 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm text-center font-mono focus:border-amber-500 outline-none"
                     />
-                    {khataAuthError && <p className="text-xs text-red-400 font-medium">Incorrect Authorization Code. Try 7890.</p>}
+                    {khataAuthError && <p className="text-xs text-red-400 font-medium">Incorrect Authorization Code. Try {khataPasscode}.</p>}
                     <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-xs">
                       Verify & Access Khata
                     </button>
@@ -998,10 +1133,10 @@ export default function App() {
       {/* 1. VIEW ORDER DETAILS MODAL */}
       {selectedOrderDetail && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-amber-500" /> Order Details & Client Profile
+                <FileText className="w-5 h-5 text-amber-500" /> Order Details & History
               </h2>
               <button onClick={() => setSelectedOrderDetail(null)} className="p-1 hover:bg-slate-100 rounded-full">
                 <X className="w-5 h-5 text-slate-500" />
@@ -1017,12 +1152,42 @@ export default function App() {
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                <p><span className="text-slate-500 font-medium">Party / Vendor Name:</span> <strong className="text-slate-900">{selectedOrderDetail.supplierName || selectedOrderDetail.customerName}</strong></p>
-                <p><span className="text-slate-500 font-medium">Contact Phone:</span> <strong className="font-mono text-slate-800">{selectedOrderDetail.contactPhone}</strong></p>
+                <p><span className="text-slate-500 font-medium">Party / Vendor Name:</span> <strong className="text-slate-900">{selectedOrderDetail.supplierName || selectedOrderDetail.customerName || selectedOrderDetail.clientName}</strong></p>
+                <p><span className="text-slate-500 font-medium">Contact Phone:</span> <strong className="font-mono text-slate-800">{selectedOrderDetail.contactPhone || selectedOrderDetail.clientPhone}</strong></p>
                 <p><span className="text-slate-500 font-medium">City:</span> <strong className="text-amber-700">{selectedOrderDetail.city}</strong></p>
                 <p><span className="text-slate-500 font-medium">Address:</span> <span className="text-slate-700">{selectedOrderDetail.address}</span></p>
                 <p><span className="text-slate-500 font-medium">Total Order Valuation:</span> <strong className="text-emerald-700 font-mono text-sm">{selectedOrderDetail.totalAmount}</strong></p>
               </div>
+
+              {selectedOrderDetail.previousOrders && selectedOrderDetail.previousOrders.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <h3 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                    <History className="w-4 h-4 text-amber-600" /> Previous Order History
+                  </h3>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                        <tr>
+                          <th className="p-2">Past Order ID</th>
+                          <th className="p-2">Date</th>
+                          <th className="p-2">Quantity</th>
+                          <th className="p-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {selectedOrderDetail.previousOrders.map((prev, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="p-2 font-mono text-slate-800">{prev.id}</td>
+                            <td className="p-2 text-slate-600">{prev.date}</td>
+                            <td className="p-2 font-mono font-medium">{prev.qty}</td>
+                            <td className="p-2"><span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded font-bold">{prev.status}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end">
@@ -1056,15 +1221,45 @@ export default function App() {
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                <p><span className="text-slate-500 font-medium">Phone Number:</span> <strong className="font-mono text-slate-800">{selectedWorkerDetail.phone}</strong></p>
-                <p><span className="text-slate-500 font-medium">Guardian / Father Name:</span> <strong className="text-slate-800">{selectedWorkerDetail.guardianName}</strong></p>
-                <p><span className="text-slate-500 font-medium">Residential Address:</span> <span className="text-slate-700">{selectedWorkerDetail.address}</span></p>
+                <p>
+                  <span className="text-slate-500 font-medium">Phone Number:</span>{' '}
+                  {role === 'ADMIN' || role === 'SUPERVISOR' ? (
+                    <strong className="font-mono text-slate-800">{selectedWorkerDetail.phone}</strong>
+                  ) : (
+                    <span className="text-slate-400 italic">[Restricted to Admin & Supervisor]</span>
+                  )}
+                </p>
+                <p>
+                  <span className="text-slate-500 font-medium">Guardian / Father Name:</span>{' '}
+                  {role === 'ADMIN' ? (
+                    <strong className="text-slate-800">{selectedWorkerDetail.guardianName}</strong>
+                  ) : (
+                    <span className="text-slate-400 italic">[Restricted - Admin Only]</span>
+                  )}
+                </p>
+                <p>
+                  <span className="text-slate-500 font-medium">Residential Address:</span>{' '}
+                  {role === 'ADMIN' ? (
+                    <span className="text-slate-700">{selectedWorkerDetail.address}</span>
+                  ) : (
+                    <span className="text-slate-400 italic">[Restricted - Admin Only]</span>
+                  )}
+                </p>
               </div>
 
               <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 space-y-1">
                 <p><span className="text-slate-600 font-medium">Base Daily Rate:</span> <strong className="font-mono">Rs {selectedWorkerDetail.dailyRate}/day</strong></p>
                 <p><span className="text-slate-600 font-medium">Overtime Logged:</span> <strong className="text-purple-700 font-mono">{selectedWorkerDetail.overtimeHours} Hours</strong></p>
-                <p><span className="text-slate-600 font-medium">Net Earnings (This Week):</span> <strong className="text-emerald-700 font-mono text-sm">Rs {calculateEarnings(selectedWorkerDetail.attendance, selectedWorkerDetail.dailyRate, selectedWorkerDetail.overtimeHours, selectedWorkerDetail.payAdjustment)}</strong></p>
+                <p>
+                  <span className="text-slate-600 font-medium">Net Earnings (This Week):</span>{' '}
+                  {role === 'ADMIN' || role === 'SUPERVISOR' ? (
+                    <strong className="text-emerald-700 font-mono text-sm">
+                      Rs {calculateEarnings(selectedWorkerDetail.attendance, selectedWorkerDetail.dailyRate, selectedWorkerDetail.overtimeHours, selectedWorkerDetail.payAdjustment)}
+                    </strong>
+                  ) : (
+                    <span className="text-slate-400 italic">[Restricted]</span>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -1129,7 +1324,7 @@ export default function App() {
               </div>
 
               <div className="pt-2 border-t border-slate-200">
-                <label className="block font-bold text-slate-800 mb-1">Enter Security Code To Save (7890):</label>
+                <label className="block font-bold text-slate-800 mb-1">Enter Security Code To Save ({khataPasscode}):</label>
                 <input
                   type="password"
                   placeholder="Enter Code to Authorize"
@@ -1138,7 +1333,7 @@ export default function App() {
                   className="w-full px-3 py-1.5 border border-amber-300 bg-amber-50/50 rounded-lg font-mono text-center font-bold"
                   required
                 />
-                {saveCodeError && <p className="text-xs text-red-500 font-medium mt-1">Invalid Code! Enter 7890 to authorize save.</p>}
+                {saveCodeError && <p className="text-xs text-red-500 font-medium mt-1">Invalid Code! Enter {khataPasscode} to authorize save.</p>}
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
@@ -1172,13 +1367,13 @@ export default function App() {
             <form onSubmit={confirmKhataExit} className="space-y-3">
               <input
                 type="password"
-                placeholder="Enter Code (7890)"
+                placeholder={`Enter Code (${khataPasscode})`}
                 value={exitCodeInput}
                 onChange={(e) => setExitCodeInput(e.target.value)}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm text-center font-mono"
                 required
               />
-              {exitCodeError && <p className="text-xs text-red-500 font-medium">Incorrect exit authorization code. Enter 7890.</p>}
+              {exitCodeError && <p className="text-xs text-red-500 font-medium">Incorrect exit authorization code. Enter {khataPasscode}.</p>}
 
               <div className="flex gap-2">
                 <button
@@ -1200,6 +1395,146 @@ export default function App() {
         </div>
       )}
 
+      {/* 5. ADMIN CONTROL CENTER SETTINGS MODAL */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+              <div className="flex items-center gap-2 text-slate-900">
+                <Settings className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold">Admin Control Center Settings</h2>
+              </div>
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                <h3 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-600" /> Change Administrator Passcode
+                </h3>
+                <form onSubmit={handleChangeAdminPass} className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="Enter new admin passcode"
+                    value={newAdminPassInput}
+                    onChange={(e) => setNewAdminPassInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg text-xs"
+                  >
+                    Update
+                  </button>
+                </form>
+                {passChangeSuccess && (
+                  <p className="text-xs text-emerald-600 font-semibold">
+                    Admin passcode updated successfully!
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-500">Current Admin Passcode: <span className="font-mono font-bold text-slate-800">{adminPasscode}</span></p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                <h3 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-amber-600" /> Add New Role / User Account
+                </h3>
+                <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-1">User Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Administrator Number 2"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-1">Role Type</label>
+                    <select
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none bg-white font-medium"
+                    >
+                      <option value="ADMIN">Administrator</option>
+                      <option value="SUPERVISOR">Supervisor</option>
+                      <option value="WORKER">Worker</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-1">Secret Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ADM-002"
+                      value={newUserCode}
+                      onChange={(e) => setNewUserCode(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-1">Secret Password</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. mysecretpass123"
+                      value={newUserPass}
+                      onChange={(e) => setNewUserPass(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button
+                      type="submit"
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold py-2 rounded-lg text-xs"
+                    >
+                      Save New User
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold uppercase text-slate-700">Existing Authorized Users</h3>
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                      <tr>
+                        <th className="p-2.5">Name</th>
+                        <th className="p-2.5">Role</th>
+                        <th className="p-2.5">Secret Code</th>
+                        <th className="p-2.5">Secret Password</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {usersList.map((u) => (
+                        <tr key={u.id} className="hover:bg-slate-50">
+                          <td className="p-2.5 font-semibold text-slate-900">{u.name}</td>
+                          <td className="p-2.5"><span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">{u.role}</span></td>
+                          <td className="p-2.5 font-mono text-slate-600">{u.secretCode}</td>
+                          <td className="p-2.5 font-mono text-slate-800 font-bold">{u.secretPassword}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-blue-950 border-t border-blue-900 p-4 text-center text-xs text-slate-500 flex items-center justify-between">
+        <span>STAR FACTORY CONTROL v2.4</span>
+        <span className="flex items-center gap-1 font-medium text-emerald-400">
+          <Shield className="w-3.5 h-3.5 text-emerald-400" /> System Online & Protected
+        </span>
+      </footer>
     </div>
   );
 }
