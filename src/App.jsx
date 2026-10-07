@@ -8,7 +8,7 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState('machines');
   const [role, setRole] = useState('SUPERVISOR');
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(true);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState(false);
 
@@ -63,19 +63,30 @@ export default function App() {
     setMachines(prev => prev.map(m => id === m.id ? { ...m, speed: Number(newSpeed) } : m));
   };
 
+
+  const activeMachinesCount = machines.filter(m => m.status === 'RUNNING').length;
+const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) / machines.length);
+
+ const [selectedRole, setSelectedRole] = useState('ADMIN'); // Role dropdown ke liye state
+
   const handleUnlock = (e) => {
     e.preventDefault();
-    if (passcode === '1234') {
+    
+    // Role ke mutabiq correct password check karna
+    let correctPasscode = '';
+    if (selectedRole === 'ADMIN') correctPasscode = '1234';
+    else if (selectedRole === 'SUPERVISOR') correctPasscode = '5678';
+    else if (selectedRole === 'WORKER') correctPasscode = '9012';
+
+    if (passcode === correctPasscode) {
+      setRole(selectedRole); // Selected role apply hoga
       setIsLocked(false);
-      setPasscode('');
       setError(false);
+      setPasscode('');
     } else {
       setError(true);
     }
   };
-
-  const activeMachinesCount = machines.filter(m => m.status === 'RUNNING').length;
-  const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) / machines.length);
 
   if (isLocked) {
     return (
@@ -90,24 +101,47 @@ export default function App() {
           </div>
 
           <form onSubmit={handleUnlock} className="space-y-4">
+            {/* Role Dropdown */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Enter Passcode (1234)</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">
+                Please select who you are:
+              </label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white font-medium text-slate-700"
+              >
+                <option value="ADMIN">Administrator (Pass: 1234)</option>
+                <option value="SUPERVISOR">Manager / Supervisor (Pass: 5678)</option>
+                <option value="WORKER">Employee / Worker (Pass: 9012)</option>
+              </select>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">
+                Passcode:
+              </label>
               <input
                 type="password"
-                maxLength={4}
+                placeholder="Enter Access Passcode"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                placeholder="••••"
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-center text-2xl tracking-widest text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
-              {error && <p className="text-xs text-red-600 mt-2 text-center">Invalid Security Passcode</p>}
             </div>
+
+            {error && (
+              <p className="text-xs text-red-500 font-medium">
+                Invalid Passcode for selected role. Please try again.
+              </p>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg transition-colors"
             >
-              <Unlock className="w-4 h-4" /> Unlock Console
+              Unlock Access
             </button>
           </form>
 
@@ -122,44 +156,47 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white text-slate-800 font-sans flex flex-col max-w-4xl mx-auto border-x border-slate-200 shadow-sm">
       {/* Top Header */}
-      <header className="bg-blue-950 border-b border-slate-200 px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
-        {/* Logo & Brand */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-600">
-            <Star className="w-5 h-5 fill-amber-400" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <span className='text-amber-400'STAR FACTORY >STAR FACTORY</span> <span className="text-xs font-semibold text-amber-700 border border-amber-300 bg-amber-100 px-1.5 py-0.5 rounded">OS</span>
-            </h1>
-            <p className="text-xs text-slate-500 hidden sm:block">Industrial Monitoring & Automation Platform</p>
-          </div>
-        </div>
+     <header className="bg-blue-950 border-b border-slate-200 px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+  {/* Logo & Brand */}
+  <div className="flex items-center gap-3">
+    <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-600 shadow-sm">
+      <Star className="w-6 h-6 fill-amber-400" />
+    </div>
+    <div className="flex flex-col">
+      <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span className="text-amber-400">STAR FACTORY</span> 
+        <span className="text-xs font-semibold text-amber-700 border border-amber-300 bg-amber-100 px-1.5 py-0.5 rounded">OS</span>
+      </h1>
+      <p className="text-xs text-slate-400 hidden sm:block">Industrial Monitoring & Automation Platform</p>
+    </div>
+  </div>
 
-        {/* Role Switcher & Controls */}
-        <div className="flex items-center gap-3">
-          <div className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 shadow-sm">
-            <span className="text-slate-500">Role:</span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="bg-transparent text-amber-600 font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="WORKER" className="bg-white text-slate-800">Worker (Read Only)</option>
-              <option value="SUPERVISOR" className="bg-white text-slate-800">Supervisor</option>
-              <option value="ADMIN" className="bg-white text-slate-800">Administrator</option>
-            </select>
-          </div>
+  {/* Role Switcher & Controls */}
+  <div className="flex items-center gap-3">
+    <div className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 shadow-sm">
+      <span className="text-slate-500">Role:</span>
+      <select
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        className="bg-transparent text-amber-600 font-semibold focus:outline-none cursor-pointer"
+      >
+        <option value="WORKER" className="bg-white text-slate-800">Worker (Read Only)</option>
+        <option value="SUPERVISOR" className="bg-white text-slate-800">Supervisor</option>
+        <option value="ADMIN" className="bg-white text-slate-800">Administrator</option>
+      </select>
+    </div>
 
-          <button
-            onClick={() => setIsLocked(true)}
-            className="p-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-sm"
-            title="Lock Console"
-          >
-            <Lock className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
+    <button
+      onClick={() => setIsLocked(true)}
+      className="p-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-sm"
+      title="Lock Console"
+    >
+      <Lock className="w-4 h-4" />
+    </button>
+  </div>
+</header>
+
+
 
       {/* Main Container */}
       <div className="flex-1 p-6 space-y-6 bg-white">
