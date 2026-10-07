@@ -1,18 +1,122 @@
 import React, { useState } from 'react';
 import { 
   Activity, Shield, Database, Users, Package, Sliders, 
-  AlertTriangle, CheckCircle, Lock, Unlock, Play, Square,
-  Thermometer, Gauge, Clock, ChevronRight, Menu, X, Star
+  AlertTriangle, Lock, Play, Square, Thermometer, Gauge, 
+  X, Star, Settings, UserPlus, Key, Eye, Phone, Home, User, 
+  ShoppingCart, Calendar, MapPin, History, FileText, StickyNote,
+  Video, Camera, Maximize2, Radio, BookOpen, PlusCircle, DollarSign,
+  MinusCircle
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('machines');
-  const [role, setRole] = useState('SUPERVISOR');
-  const [isLocked, setIsLocked] = useState(true);
+  const [activeTab, setActiveTab] = useState('khata');
+  const [role, setRole] = useState('ADMIN');
+  const [isLocked, setIsLocked] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('ADMIN');
 
-  // Machine state
+  // Khata Security State
+  const [isKhataUnlocked, setIsKhataUnlocked] = useState(false);
+  const [khataPasscode, setKhataPasscode] = useState('7890');
+  const [inputKhataCode, setInputKhataCode] = useState('');
+  const [khataAuthError, setKhataAuthError] = useState(false);
+  
+  // Pending Navigation State
+  const [pendingTabSwitch, setPendingTabSwitch] = useState(null);
+  const [showExitCodeModal, setShowExitCodeModal] = useState(false);
+  const [exitCodeInput, setExitCodeInput] = useState('');
+  const [exitCodeError, setExitCodeError] = useState(false);
+
+  // Reminders State
+  const [reminderNote, setReminderNote] = useState('Night shift Maintenance Audit at 11:00 PM');
+
+  // Khata Modals & Data
+  const [selectedKhataEntry, setSelectedKhataEntry] = useState(null);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+  const [newPaymentAmount, setNewPaymentAmount] = useState('');
+  const [newPaidQty, setNewPaidQty] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [saveAuthCodeInput, setSaveAuthCodeInput] = useState('');
+  const [saveCodeError, setSaveCodeError] = useState(false);
+
+  const [khataLedger, setKhataLedger] = useState([
+    {
+      orderId: 'ORD-RCV-901',
+      orderName: 'Industrial Valve Assemblies Batch',
+      sellerName: 'Crescent Engineering Corp',
+      totalQuantityShipped: 150,
+      quantityPaidFor: 100,
+      totalOrderAmount: 850000,
+      advanceGiven: 200000,
+      totalPaidAmount: 550000,
+      transactions: [
+        { date: '2026-09-10', type: 'Advance Payment', amount: 200000, paidQty: 35, note: 'Initial Order Booking Advance' },
+        { date: '2026-09-25', type: 'Partial Payment', amount: 350000, paidQty: 65, note: 'Dispatch Shipment Clearance' }
+      ]
+    },
+    {
+      orderId: 'ORD-RCV-902',
+      orderName: 'Precision Gear Sets Heavy Duty',
+      sellerName: 'Sialkot Machinery Works',
+      totalQuantityShipped: 80,
+      quantityPaidFor: 30,
+      totalOrderAmount: 320000,
+      advanceGiven: 50000,
+      totalPaidAmount: 120000,
+      transactions: [
+        { date: '2026-09-15', type: 'Advance Payment', amount: 50000, paidQty: 10, note: 'Token Advance' },
+        { date: '2026-10-01', type: 'Installment', amount: 70000, paidQty: 20, note: 'Second Batch Payment' }
+      ]
+    }
+  ]);
+
+  // Order Management State & Modals
+  const [ordersSubTab, setOrdersSubTab] = useState('orders_made');
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+
+  const [ordersMade] = useState([
+    {
+      orderId: 'ORD-MADE-101',
+      type: 'Raw Material Purchase',
+      itemId: 'RM-BRASS',
+      itemName: 'Brass Alloy Ingot Shipment',
+      quantity: '1,200 kg',
+      city: 'Gujranwala',
+      supplierName: 'Punjab Steel Mills Vendor',
+      contactPhone: '+92 301 5551234',
+      address: 'Industrial Estate Phase 2, Gujranwala',
+      totalAmount: 'Rs 450,000',
+      status: 'Ordered / In Transit'
+    }
+  ]);
+
+  const [ordersReceived] = useState([
+    {
+      orderId: 'ORD-RCV-901',
+      type: 'Finished Product Sale',
+      itemId: 'MI-VALVE',
+      itemName: 'Industrial Valve Assemblies',
+      quantity: '150 units',
+      city: 'Lahore',
+      customerName: 'Crescent Engineering Corp',
+      contactPhone: '+92 300 7776655',
+      address: 'Kot Lakhpat Industrial Area, Lahore',
+      totalAmount: 'Rs 850,000',
+      status: 'Ready for Dispatch'
+    }
+  ]);
+
+  // CCTV State
+  const [expandedCamFeed, setExpandedCamFeed] = useState(null);
+  const [cctvCameras] = useState([
+    { id: 'CAM-01', location: 'Main Cutting Floor', status: 'ONLINE', fps: 30, ip: '192.168.1.101', activeWorker: 'Ali Khan (Main Cutter 01)' },
+    { id: 'CAM-02', location: 'Packaging & Logistics Gate', status: 'ONLINE', fps: 28, ip: '192.168.1.102', activeWorker: 'Usman Raza (Packing Box 02)' },
+    { id: 'CAM-03', location: 'Raw Material Warehouse', status: 'ONLINE', fps: 30, ip: '192.168.1.103', activeWorker: 'Security Supervisor' },
+    { id: 'CAM-04', location: 'Robotics Assembly Line', status: 'ONLINE', fps: 60, ip: '192.168.1.104', activeWorker: 'Automated Bot A1' }
+  ]);
+
+  // Machine Floor State
   const [machines, setMachines] = useState([
     { id: 'M1', name: 'Main Cutter 01', type: 'Cutting Unit', worker: 'Ali Khan', status: 'RUNNING', speed: 85, temp: 42, alert: null },
     { id: 'M2', name: 'Packing Box 02', type: 'Packaging Unit', worker: 'Usman Raza', status: 'RUNNING', speed: 92, temp: 38, alert: null },
@@ -21,31 +125,185 @@ export default function App() {
     { id: 'M5', name: 'Assembly Arm 05', type: 'Robotics', worker: 'Automated Bot A1', status: 'MAINTENANCE', speed: 0, temp: 22, alert: 'System Audit' },
   ]);
 
-  // Inventory state
-  const [inventory] = useState([
-    { id: 'RAW-01', name: 'Steel Sheets (Grade A)', category: 'Raw Material', stock: 4200, unit: 'kg', status: 'OPTIMAL' },
-    { id: 'CHEM-03', name: 'Industrial Adhesive', category: 'Chemicals', stock: 180, unit: 'Liters', status: 'LOW' },
-    { id: 'FAST-08', name: 'Star-Bolt M8', category: 'Fasteners', stock: 12500, unit: 'units', status: 'OPTIMAL' },
-    { id: 'BOX-02', name: 'Star Crate Alpha', category: 'Finished Goods', stock: 840, unit: 'boxes', status: 'OPTIMAL' },
-    { id: 'FG-01', name: 'Star Panel Premium', category: 'Finished Goods', stock: 120, unit: 'units', status: 'LOW' },
+  // Inventory / Materials State
+  const [rawMaterials] = useState([
+    { id: 'RM-BRASS', name: 'Brass Alloy', category: 'Metals', stock: 500, unit: 'kg', preOrdered: 200, rawWeight: '1.2 Tons (1,200 kg)' },
+    { id: 'RM-ALUM', name: 'Aluminum 6061', category: 'Metals', stock: 1200, unit: 'kg', preOrdered: 500, rawWeight: '2.5 Tons (2,500 kg)' },
+    { id: 'RM-STEEL', name: 'Stainless Steel 304', category: 'Metals', stock: 850, unit: 'kg', preOrdered: 0, rawWeight: '1.8 Tons (1,800 kg)' },
+    { id: 'RM-PLAS-A', name: 'Plastic Resin - Grade A', category: 'Plastics', stock: 200, unit: 'kg', preOrdered: 100, rawWeight: '0.5 Tons (500 kg)' },
   ]);
 
-  // Worker Roster state
-  const [workers] = useState([
-    { id: 'W-101', name: 'Ali Khan', role: 'Machine Operator', shift: 'Morning (08:00 - 16:00)', assigned: 'Main Cutter 01', status: 'ON_DUTY' },
-    { id: 'W-102', name: 'Usman Raza', role: 'Packaging Tech', shift: 'Morning (08:00 - 16:00)', assigned: 'Packing Box 02', status: 'ON_DUTY' },
-    { id: 'W-103', name: 'Zohaib Hassan', role: 'Welding Specialist', shift: 'Morning (08:00 - 16:00)', assigned: 'Welder Station 03', status: 'ON_DUTY' },
-    { id: 'W-104', name: 'Ahmed Noor', role: 'Quality Analyst', shift: 'Morning (08:00 - 16:00)', assigned: 'Label Printer 04', status: 'STANDBY' },
-    { id: 'W-105', name: 'Sara Tariq', role: 'Shift Lead', shift: 'Morning (08:00 - 16:00)', assigned: 'Floor Supervisor', status: 'ON_DUTY' },
+  // Worker & Attendance State
+  const [selectedWorkerDetail, setSelectedWorkerDetail] = useState(null);
+  const [workersList, setWorkersList] = useState([
+    { 
+      id: 'W-101', 
+      name: 'Ali Khan', 
+      role: 'Machine Operator', 
+      shiftType: 'DAY', 
+      assigned: 'Main Cutter 01', 
+      phone: '+92 300 1234567',
+      guardianName: 'Tariq Khan',
+      address: 'Street 4, Sector G-9, Islamabad',
+      dailyRate: 500,
+      overtimeHours: 12,
+      payAdjustment: 0,
+      todayStatus: 'P',
+      attendance: ['P', 'P', 'P', 'P', 'P', 'A', 'P'],
+    },
+    { 
+      id: 'W-102', 
+      name: 'Usman Raza', 
+      role: 'Packaging Tech', 
+      shiftType: 'DAY', 
+      assigned: 'Packing Box 02', 
+      phone: '+92 312 9876543',
+      guardianName: 'Muhammad Raza',
+      address: 'House 12, Block B, Lahore',
+      dailyRate: 500,
+      overtimeHours: 6,
+      payAdjustment: -200,
+      todayStatus: 'P',
+      attendance: ['P', 'P', 'P', 'P', 'P', 'P', 'P'],
+    },
+    { 
+      id: 'W-103', 
+      name: 'Zohaib Hassan', 
+      role: 'Welding Specialist', 
+      shiftType: 'NIGHT', 
+      assigned: 'Welder Station 03', 
+      phone: '+92 333 4567890',
+      guardianName: 'Hassan Mahmood',
+      address: 'Near Main Market, Faisalabad',
+      dailyRate: 500,
+      overtimeHours: 0,
+      payAdjustment: 0,
+      todayStatus: 'A',
+      attendance: ['P', 'A', 'P', 'P', 'P', 'P', 'A'],
+    },
   ]);
 
-  // Logs state
+  // Logs
   const [logs] = useState([
     { id: 1, time: '13:14:10', type: 'INFO', message: 'Main Cutter 01 speed calibrated to 85% by operator Ali Khan' },
     { id: 2, time: '12:45:22', type: 'WARNING', message: 'Industrial Adhesive stock dipped below threshold (180 L)' },
-    { id: 3, time: '11:02:00', type: 'SECURITY', message: 'Supervisor access permissions granted to user session' },
-    { id: 4, time: '10:15:30', type: 'INFO', message: 'Welding safety protocol initiated - STOPPED' },
+    { id: 3, time: '11:02:00', type: 'SECURITY', message: 'Khata financial record modified and authorized via passcode' },
   ]);
+
+  // --- LOGIC HANDLERS ---
+
+  const activeMachinesCount = machines.filter(m => m.status === 'RUNNING').length;
+  const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) / machines.length);
+
+  const handleKhataUnlock = (e) => {
+    e.preventDefault();
+    if (inputKhataCode === khataPasscode) {
+      setIsKhataUnlocked(true);
+      setKhataAuthError(false);
+      setInputKhataCode('');
+    } else {
+      setKhataAuthError(true);
+    }
+  };
+
+  const handleTabChange = (targetTab) => {
+    if (activeTab === 'khata' && isKhataUnlocked) {
+      setPendingTabSwitch(targetTab);
+      setShowExitCodeModal(true);
+    } else {
+      setActiveTab(targetTab);
+    }
+  };
+
+  const confirmKhataExit = (e) => {
+    e.preventDefault();
+    if (exitCodeInput === khataPasscode) {
+      setIsKhataUnlocked(false);
+      setShowExitCodeModal(false);
+      setExitCodeError(false);
+      setExitCodeInput('');
+      if (pendingTabSwitch) {
+        setActiveTab(pendingTabSwitch);
+        setPendingTabSwitch(null);
+      }
+    } else {
+      setExitCodeError(true);
+    }
+  };
+
+  const handleAddPaymentTransaction = (e) => {
+    e.preventDefault();
+    if (saveAuthCodeInput !== khataPasscode) {
+      setSaveCodeError(true);
+      return;
+    }
+
+    if (!selectedKhataEntry || !newPaymentAmount) return;
+
+    const addedAmount = Number(newPaymentAmount);
+    const addedQty = Number(newPaidQty || 0);
+
+    setKhataLedger(prev => prev.map(entry => {
+      if (entry.orderId === selectedKhataEntry.orderId) {
+        return {
+          ...entry,
+          totalPaidAmount: entry.totalPaidAmount + addedAmount,
+          quantityPaidFor: entry.quantityPaidFor + addedQty,
+          transactions: [
+            ...entry.transactions,
+            {
+              date: new Date().toISOString().split('T')[0],
+              type: 'Payment Received',
+              amount: addedAmount,
+              paidQty: addedQty,
+              note: paymentNote || 'New Purchase Payment'
+            }
+          ]
+        };
+      }
+      return entry;
+    }));
+
+    setNewPaymentAmount('');
+    setNewPaidQty('');
+    setPaymentNote('');
+    setSaveAuthCodeInput('');
+    setSaveCodeError(false);
+    setShowAddPaymentModal(false);
+    setSelectedKhataEntry(null);
+  };
+
+  const markWorkerAttendance = (workerId, newStatus) => {
+    if (role === 'WORKER') return;
+    setWorkersList(prev => prev.map(w => {
+      if (w.id === workerId) {
+        const updatedAttendance = [...w.attendance];
+        updatedAttendance[updatedAttendance.length - 1] = newStatus;
+        return { ...w, todayStatus: newStatus, attendance: updatedAttendance };
+      }
+      return w;
+    }));
+  };
+
+  const adjustOvertime = (workerId, adjustment) => {
+    if (role === 'WORKER') return;
+    setWorkersList(prev => prev.map(w => {
+      if (w.id === workerId) {
+        return { ...w, overtimeHours: Math.max(0, w.overtimeHours + adjustment) };
+      }
+      return w;
+    }));
+  };
+
+  const adjustPay = (workerId, adjustment) => {
+    if (role === 'WORKER') return;
+    setWorkersList(prev => prev.map(w => {
+      if (w.id === workerId) {
+        return { ...w, payAdjustment: w.payAdjustment + adjustment };
+      }
+      return w;
+    }));
+  };
 
   const toggleMachineStatus = (id) => {
     if (role === 'WORKER') return;
@@ -63,29 +321,23 @@ export default function App() {
     setMachines(prev => prev.map(m => id === m.id ? { ...m, speed: Number(newSpeed) } : m));
   };
 
-
-  const activeMachinesCount = machines.filter(m => m.status === 'RUNNING').length;
-const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) / machines.length);
-
- const [selectedRole, setSelectedRole] = useState('ADMIN'); // Role dropdown ke liye state
-
   const handleUnlock = (e) => {
     e.preventDefault();
-    
-    // Role ke mutabiq correct password check karna
-    let correctPasscode = '';
-    if (selectedRole === 'ADMIN') correctPasscode = '1234';
-    else if (selectedRole === 'SUPERVISOR') correctPasscode = '5678';
-    else if (selectedRole === 'WORKER') correctPasscode = '9012';
-
+    let correctPasscode = selectedRole === 'ADMIN' ? '1234' : selectedRole === 'SUPERVISOR' ? '5678' : '9012';
     if (passcode === correctPasscode) {
-      setRole(selectedRole); // Selected role apply hoga
+      setRole(selectedRole);
       setIsLocked(false);
       setError(false);
       setPasscode('');
     } else {
       setError(true);
     }
+  };
+
+  const calculateEarnings = (attendanceArr, rate, otHours = 0, payAdjust = 0) => {
+    const presentDays = attendanceArr.filter(day => day === 'P' || day === 'OT').length;
+    const otBonus = otHours * 100;
+    return (presentDays * rate) + otBonus + payAdjust;
   };
 
   if (isLocked) {
@@ -101,313 +353,256 @@ const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) /
           </div>
 
           <form onSubmit={handleUnlock} className="space-y-4">
-            {/* Role Dropdown */}
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Please select who you are:
-              </label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Select Access Role:</label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white font-medium text-slate-700"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium text-slate-700"
               >
-                <option value="ADMIN">Administrator (Pass: 1234)</option>
-                <option value="SUPERVISOR">Manager / Supervisor (Pass: 5678)</option>
-                <option value="WORKER">Employee / Worker (Pass: 9012)</option>
+                <option value="ADMIN">Administrator</option>
+                <option value="SUPERVISOR">Manager / Supervisor</option>
+                <option value="WORKER">Worker (Read Only)</option>
               </select>
             </div>
 
-            {/* Password Input */}
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Passcode:
-              </label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Passcode:</label>
               <input
                 type="password"
                 placeholder="Enter Access Passcode"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm"
               />
             </div>
 
-            {error && (
-              <p className="text-xs text-red-500 font-medium">
-                Invalid Passcode for selected role. Please try again.
-              </p>
-            )}
+            {error && <p className="text-xs text-red-500 font-medium">Invalid Passcode for selected role.</p>}
 
-            <button
-              type="submit"
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg transition-colors"
-            >
+            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg">
               Unlock Access
             </button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-slate-200 text-center text-xs text-slate-500">
-            Star Factory OS • Secure Access Control Architecture
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 font-sans flex flex-col max-w-4xl mx-auto border-x border-slate-200 shadow-sm">
-      {/* Top Header */}
-     <header className="bg-blue-950 border-b border-slate-200 px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
-  {/* Logo & Brand */}
-  <div className="flex items-center gap-3">
-    <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-600 shadow-sm">
-      <Star className="w-6 h-6 fill-amber-400" />
-    </div>
-    <div className="flex flex-col">
-      <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-        <span className="text-amber-400">STAR FACTORY</span> 
-        <span className="text-xs font-semibold text-amber-700 border border-amber-300 bg-amber-100 px-1.5 py-0.5 rounded">OS</span>
-      </h1>
-      <p className="text-xs text-slate-400 hidden sm:block">Industrial Monitoring & Automation Platform</p>
-    </div>
-  </div>
-
-  {/* Role Switcher & Controls */}
-  <div className="flex items-center gap-3">
-    <div className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2 shadow-sm">
-      <span className="text-slate-500">Role:</span>
-      <select
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-        className="bg-transparent text-amber-600 font-semibold focus:outline-none cursor-pointer"
-      >
-        <option value="WORKER" className="bg-white text-slate-800">Worker (Read Only)</option>
-        <option value="SUPERVISOR" className="bg-white text-slate-800">Supervisor</option>
-        <option value="ADMIN" className="bg-white text-slate-800">Administrator</option>
-      </select>
-    </div>
-
-    <button
-      onClick={() => setIsLocked(true)}
-      className="p-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:text-slate-900 transition-colors shadow-sm"
-      title="Lock Console"
-    >
-      <Lock className="w-4 h-4" />
-    </button>
-  </div>
-</header>
-
-
-
-      {/* Main Container */}
-      <div className="flex-1 p-6 space-y-6 bg-white">
-        {/* KPI / Overview Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-            <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-700 rounded-lg">
-              <Activity className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Active Units</p>
-              <p className="text-xl font-bold text-slate-900 mt-0.5">{activeMachinesCount} <span className="text-xs text-slate-400 font-normal">/ {machines.length}</span></p>
-            </div>
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans flex flex-col">
+      {/* Header */}
+      <header className="bg-blue-950 border-b border-blue-900 px-6 py-3.5 sticky top-0 z-50 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-600 shadow-sm">
+            <Star className="w-5 h-5 fill-amber-400" />
           </div>
-
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-            <div className="p-3 bg-blue-100 border border-blue-300 text-blue-700 rounded-lg">
-              <Gauge className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Floor Speed Avg</p>
-              <p className="text-xl font-bold text-slate-900 mt-0.5">{avgEfficiency}%</p>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-            <div className="p-3 bg-amber-100 border border-amber-300 text-amber-700 rounded-lg">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Stock Alerts</p>
-              <p className="text-xl font-bold text-amber-600 mt-0.5">2 Attention</p>
-            </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              <span className="text-amber-400">STAR FACTORY</span> 
+              <span className="text-[10px] font-semibold text-amber-700 border border-amber-300 bg-amber-100 px-1.5 py-0.5 rounded">OS</span>
+            </h1>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('machines')}
-            className={`pb-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'machines'
-                ? 'border-amber-500 text-amber-600 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Sliders className="w-4 h-4" /> Machine Floor
-          </button>
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`pb-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'inventory'
-                ? 'border-amber-500 text-amber-600 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Package className="w-4 h-4" /> Materials & Stock
-          </button>
-          <button
-            onClick={() => setActiveTab('workers')}
-            className={`pb-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'workers'
-                ? 'border-amber-500 text-amber-600 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users className="w-4 h-4" /> Worker Roster
-          </button>
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`pb-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === 'logs'
-                ? 'border-amber-500 text-amber-600 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Database className="w-4 h-4" /> Database Logs
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-900 border border-blue-800 rounded-lg px-3 py-1 text-xs flex items-center gap-2 text-slate-200 font-medium">
+            <span className="text-slate-400">Role:</span>
+            <span className="text-amber-400 font-bold uppercase tracking-wider">
+              {role === 'ADMIN' ? 'Administrator' : role === 'SUPERVISOR' ? 'Supervisor' : 'Worker'}
+            </span>
+          </div>
+
+          <button onClick={() => setIsLocked(true)} className="p-1.5 bg-red-950 hover:bg-red-900 border border-red-800 rounded-lg text-red-300">
+            <Lock className="w-4 h-4" />
           </button>
         </div>
+      </header>
 
-        {/* Tab Content: Machines */}
-        {activeTab === 'machines' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide uppercase">Machine Control Floor</h2>
-              <span className="text-xs text-slate-500">Real-time telemetry, heat thresholds, and operational overrides</span>
+      {/* Main Layout */}
+      <div className="flex flex-1">
+        {/* Navigation Sidebar */}
+        <aside className="w-60 bg-slate-900 border-r border-slate-800 p-3 flex flex-col justify-between shrink-0 shadow-inner">
+          <div className="space-y-2">
+            <div className="px-3 py-1.5 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Navigation Menu</div>
+            <nav className="space-y-1">
+              <button
+                onClick={() => handleTabChange('khata')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'khata' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <BookOpen className="w-4 h-4" /> Khata Ledger
+              </button>
+
+              <button
+                onClick={() => handleTabChange('orders')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'orders' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <ShoppingCart className="w-4 h-4" /> Orders Management
+              </button>
+
+              <button
+                onClick={() => handleTabChange('machines')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'machines' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Sliders className="w-4 h-4" /> Machine Floor
+              </button>
+
+              <button
+                onClick={() => handleTabChange('inventory')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'inventory' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Package className="w-4 h-4" /> Materials & Stock
+              </button>
+
+              <button
+                onClick={() => handleTabChange('attendance')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'attendance' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Calendar className="w-4 h-4" /> Attendance & Overtime
+              </button>
+
+              <button
+                onClick={() => handleTabChange('cctv')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'cctv' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Video className="w-4 h-4" /> CCTV Surveillance
+              </button>
+
+              <button
+                onClick={() => handleTabChange('workers')}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'workers' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Users className="w-4 h-4" /> Worker Roster
+              </button>
+
+              {role === 'ADMIN' && (
+                <button
+                  onClick={() => handleTabChange('logs')}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 ${activeTab === 'logs' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:bg-slate-800'}`}
+                >
+                  <Database className="w-4 h-4" /> Database Logs
+                </button>
+              )}
+            </nav>
+          </div>
+
+          <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 text-slate-400 text-[10px]">
+            <div className="flex items-center gap-1.5 text-amber-400 font-semibold"><Shield className="w-3.5 h-3.5" /> Security Guarded</div>
+            <p className="mt-1">Khata Code: <span className="text-amber-400 font-mono font-bold">Protected (7890)</span></p>
+          </div>
+        </aside>
+
+        {/* Dashboard Main Display */}
+        <main className="flex-1 p-5 space-y-5 bg-white overflow-y-auto">
+          
+          {/* Summary Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <button 
+              onClick={() => handleTabChange('khata')}
+              className="bg-amber-50 border border-amber-300 p-3 rounded-xl flex items-center gap-2.5 text-left shadow-sm"
+            >
+              <div className="p-2 bg-amber-500 text-slate-950 rounded-lg shrink-0"><BookOpen className="w-4 h-4" /></div>
+              <div className="truncate">
+                <p className="text-[10px] font-bold text-amber-800 uppercase">Khata Ledger</p>
+                <p className="text-sm font-black text-slate-900">Rs 570,000 Due</p>
+              </div>
+            </button>
+
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center gap-2.5 shadow-sm">
+              <div className="p-2 bg-blue-100 text-blue-700 rounded-lg shrink-0"><Activity className="w-4 h-4" /></div>
+              <div className="truncate">
+                <p className="text-[10px] font-medium text-slate-500">Active Units</p>
+                <p className="text-sm font-bold text-slate-900">{activeMachinesCount} / {machines.length}</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {machines.map((m) => (
-                <div key={m.id} className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 relative overflow-hidden shadow-sm">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400">{m.id}</span>
-                        <h3 className="font-semibold text-slate-900">{m.name}</h3>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">{m.type} • Operator: <span className="text-slate-700 font-medium">{m.worker}</span></p>
-                    </div>
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center gap-2.5 shadow-sm">
+              <div className="p-2 bg-amber-100 text-amber-700 rounded-lg shrink-0"><AlertTriangle className="w-4 h-4" /></div>
+              <div className="truncate">
+                <p className="text-[10px] font-medium text-slate-500">Floor Speed</p>
+                <p className="text-sm font-bold text-slate-900">{avgEfficiency}%</p>
+              </div>
+            </div>
 
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                      m.status === 'RUNNING' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                      m.status === 'STOPPED' ? 'bg-red-100 text-red-800 border border-red-300' :
-                      m.status === 'STANDBY' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                      'bg-slate-200 text-slate-600'
-                    }`}>
-                      {m.status}
-                    </span>
-                  </div>
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center gap-2.5 shadow-sm">
+              <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg shrink-0"><Users className="w-4 h-4" /></div>
+              <div className="truncate">
+                <p className="text-[10px] font-medium text-slate-500">Attendance</p>
+                <p className="text-sm font-bold text-indigo-900">42 / 50</p>
+              </div>
+            </div>
 
-                  {/* Telemetry data */}
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                        <span>Operating Speed</span>
-                        <Gauge className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-lg font-bold text-slate-900">{m.speed}%</span>
-                        {role !== 'WORKER' && (
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={m.speed}
-                            disabled={m.status !== 'RUNNING'}
-                            onChange={(e) => handleSpeedChange(m.id, e.target.value)}
-                            className="w-16 accent-amber-500 cursor-pointer disabled:opacity-30"
-                          />
-                        )}
-                      </div>
-                    </div>
+            <button 
+              onClick={() => handleTabChange('orders')}
+              className="bg-amber-50 hover:bg-amber-100 border border-amber-300 p-3 rounded-xl flex items-center gap-2.5 text-left transition-all"
+            >
+              <div className="p-2 bg-amber-500 text-slate-950 rounded-lg shrink-0"><ShoppingCart className="w-4 h-4" /></div>
+              <div className="truncate">
+                <p className="text-[10px] font-bold text-amber-800 uppercase">Today's Orders</p>
+                <p className="text-sm font-black text-slate-900">Active →</p>
+              </div>
+            </button>
 
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                        <span>Core Temp</span>
-                        <Thermometer className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                      <span className={`text-lg font-bold ${m.temp > 40 ? 'text-amber-600' : 'text-slate-900'}`}>
-                        {m.temp}°C
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Control Button */}
-                  <div className="pt-2 flex items-center justify-between">
-                    {m.alert ? (
-                      <span className="text-xs text-red-600 flex items-center gap-1 font-semibold">
-                        <AlertTriangle className="w-3.5 h-3.5" /> {m.alert}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-500">Live Telemetry Active</span>
-                    )}
-
-                    {role !== 'WORKER' && (
-                      <button
-                        onClick={() => toggleMachineStatus(m.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${
-                          m.status === 'RUNNING'
-                            ? 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-300'
-                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300'
-                        }`}
-                      >
-                        {m.status === 'RUNNING' ? (
-                          <><Square className="w-3 h-3 fill-current" /> Stop Unit</>
-                        ) : (
-                          <><Play className="w-3 h-3 fill-current" /> Start Unit</>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex flex-col justify-between shadow-sm col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1">
+                <StickyNote className="w-3 h-3 text-amber-500" /> Reminder
+              </span>
+              <input 
+                type="text" 
+                value={reminderNote}
+                onChange={(e) => setReminderNote(e.target.value)}
+                className="text-[11px] font-medium bg-transparent text-slate-800 border-b border-transparent hover:border-slate-300 outline-none w-full truncate"
+              />
             </div>
           </div>
-        )}
 
-        {/* Tab Content: Inventory */}
-        {activeTab === 'inventory' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide uppercase">Inventory & Stock Tracking</h2>
-              <span className="text-xs text-slate-500">Raw materials and finished goods inventory logs</span>
-            </div>
+          {/* TAB: ORDERS MANAGEMENT */}
+          {activeTab === 'orders' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xs font-bold text-slate-800 uppercase">Factory Orders Center</h2>
+                <span className="text-[11px] text-slate-500">All Client & Vendor Shipments</span>
+              </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider font-semibold">
+              <div className="flex border-b border-slate-200 gap-4">
+                <button 
+                  onClick={() => setOrdersSubTab('orders_made')} 
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${ordersSubTab === 'orders_made' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Orders I Made (Purchases)
+                </button>
+                <button 
+                  onClick={() => setOrdersSubTab('orders_received')} 
+                  className={`pb-2 px-3 text-xs font-semibold border-b-2 ${ordersSubTab === 'orders_received' ? 'border-amber-500 text-amber-600 font-bold' : 'border-transparent text-slate-500'}`}
+                >
+                  Orders I Received (Sales)
+                </button>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs table-fixed">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
                     <tr>
-                      <th className="p-3">Item ID</th>
-                      <th className="p-3">Name</th>
-                      <th className="p-3">Category</th>
-                      <th className="p-3">Stock Quantity</th>
-                      <th className="p-3">Status</th>
+                      <th className="p-2.5 w-1/6">Order ID</th>
+                      <th className="p-2.5 w-1/4">Order / Item Name</th>
+                      <th className="p-2.5 w-1/6">Quantity</th>
+                      <th className="p-2.5 w-1/6">City</th>
+                      <th className="p-2.5 text-center w-28">View Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-700">
-                    {inventory.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-3 font-mono text-slate-500">{item.id}</td>
-                        <td className="p-3 font-semibold text-slate-900">{item.name}</td>
-                        <td className="p-3 text-slate-500">{item.category}</td>
-                        <td className="p-3 font-medium text-slate-800">{item.stock} {item.unit}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            item.status === 'OPTIMAL' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                            'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}>
-                            {item.status}
-                          </span>
+                    {(ordersSubTab === 'orders_made' ? ordersMade : ordersReceived).map((ord) => (
+                      <tr key={ord.orderId} className="hover:bg-slate-50">
+                        <td className="p-2.5 font-mono font-bold text-slate-800">{ord.orderId}</td>
+                        <td className="p-2.5 font-semibold text-slate-900 truncate">{ord.itemName}</td>
+                        <td className="p-2.5 font-mono text-slate-800">{ord.quantity}</td>
+                        <td className="p-2.5 text-amber-700 font-medium">{ord.city}</td>
+                        <td className="p-2.5 text-center">
+                          <button 
+                            onClick={() => setSelectedOrderDetail(ord)} 
+                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-[11px] flex items-center gap-1 mx-auto shadow-sm"
+                          >
+                            <FileText className="w-3 h-3" /> View Details
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -415,75 +610,596 @@ const avgEfficiency = Math.round(machines.reduce((acc, m) => acc + m.speed, 0) /
                 </table>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab Content: Workers */}
-        {activeTab === 'workers' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide uppercase">Shift Roster & Operators</h2>
-              <span className="text-xs text-slate-500">Personnel assignments and active duty status</span>
+          {/* TAB: WORKER ROSTER */}
+          {activeTab === 'workers' && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-slate-800 uppercase">Worker Shift Roster</h2>
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs table-fixed">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                    <tr>
+                      <th className="p-2.5 w-1/4">Worker Name</th>
+                      <th className="p-2.5 w-1/4">Designation</th>
+                      <th className="p-2.5 w-1/4">Assigned Unit</th>
+                      <th className="p-2.5 text-center w-28">Employee Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-700">
+                    {workersList.map((w) => (
+                      <tr key={w.id} className="hover:bg-slate-50">
+                        <td className="p-2.5 font-semibold text-slate-900">{w.name}</td>
+                        <td className="p-2.5 text-slate-600">{w.role}</td>
+                        <td className="p-2.5 text-amber-700 font-medium">{w.assigned}</td>
+                        <td className="p-2.5 text-center">
+                          <button 
+                            onClick={() => setSelectedWorkerDetail(w)} 
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded text-[11px] flex items-center gap-1 mx-auto"
+                          >
+                            <Eye className="w-3 h-3" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {workers.map((w) => (
-                <div key={w.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-start justify-between shadow-sm">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-slate-900 text-sm">{w.name}</h3>
-                      <span className="text-[10px] font-mono text-slate-400">{w.id}</span>
+          {/* TAB: MACHINE FLOOR */}
+          {activeTab === 'machines' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-xs font-bold text-slate-800 tracking-wide uppercase">Machine Control Floor</h2>
+                <span className="text-[11px] text-slate-500">Real-time telemetry and operational overrides</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {machines.map((m) => (
+                  <div key={m.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 relative overflow-hidden shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-400">{m.id}</span>
+                          <h3 className="font-semibold text-slate-900 text-xs">{m.name}</h3>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{m.type} • Operator: <span className="text-slate-700 font-medium">{m.worker}</span></p>
+                      </div>
+
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                        m.status === 'RUNNING' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                        m.status === 'STOPPED' ? 'bg-red-100 text-red-800 border border-red-300' :
+                        m.status === 'STANDBY' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                        'bg-slate-200 text-slate-600'
+                      }`}>
+                        {m.status}
+                      </span>
                     </div>
-                    <p className="text-xs text-amber-700 font-medium">{w.role}</p>
-                    <p className="text-xs text-slate-600">Assigned: <span className="text-slate-900 font-medium">{w.assigned}</span></p>
-                    <p className="text-[11px] text-slate-500">{w.shift}</p>
+
+                    <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-200">
+                      <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                          <span>Operating Speed</span>
+                          <Gauge className="w-3 h-3 text-slate-400" />
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-base font-bold text-slate-900">{m.speed}%</span>
+                          {role !== 'WORKER' && (
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={m.speed}
+                              disabled={m.status !== 'RUNNING'}
+                              onChange={(e) => handleSpeedChange(m.id, e.target.value)}
+                              className="w-14 accent-amber-500 cursor-pointer disabled:opacity-30"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                          <span>Core Temp</span>
+                          <Thermometer className="w-3 h-3 text-slate-400" />
+                        </div>
+                        <span className={`text-base font-bold ${m.temp > 40 ? 'text-amber-600' : 'text-slate-900'}`}>
+                          {m.temp}°C
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between">
+                      {m.alert ? (
+                        <span className="text-[11px] text-red-600 flex items-center gap-1 font-semibold">
+                          <AlertTriangle className="w-3 h-3" /> {m.alert}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-500">Live Telemetry Active</span>
+                      )}
+
+                      {role !== 'WORKER' && (
+                        <button
+                          onClick={() => toggleMachineStatus(m.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm ${
+                            m.status === 'RUNNING'
+                              ? 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-300'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300'
+                          }`}
+                        >
+                          {m.status === 'RUNNING' ? (
+                            <><Square className="w-3 h-3 fill-current" /> Stop</>
+                          ) : (
+                            <><Play className="w-3 h-3 fill-current" /> Start</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: MATERIALS & STOCK */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-slate-800 uppercase">Materials & Stock Inventory</h2>
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                    <tr>
+                      <th className="p-3">Item Name</th>
+                      <th className="p-3">Material Category</th>
+                      <th className="p-3 font-mono">Stock Quantity Available</th>
+                      <th className="p-3 font-mono">Pre-ordered Stock</th>
+                      <th className="p-3 font-mono">Raw Stock Weight</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-700">
+                    {rawMaterials.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-900">{item.name}</td>
+                        <td className="p-3 text-slate-500">{item.category}</td>
+                        <td className="p-3 font-mono font-bold text-emerald-700">{item.stock} {item.unit}</td>
+                        <td className="p-3 font-mono font-bold text-amber-600">{item.preOrdered} {item.unit}</td>
+                        <td className="p-3 font-mono font-bold text-slate-800">{item.rawWeight}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ATTENDANCE & OVERTIME */}
+          {activeTab === 'attendance' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-800 uppercase">Worker Attendance & Overtime Tracker</h2>
+                <span className="text-[11px] text-slate-500">Daily Attendance & Financial Adjustments</span>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                    <tr>
+                      <th className="p-3">Worker Name</th>
+                      <th className="p-3">Shift</th>
+                      <th className="p-3 text-center">7-Day Grid</th>
+                      <th className="p-3 text-center">Overtime</th>
+                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Mark Status</th>}
+                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Overtime (+ / -)</th>}
+                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3 text-center">Pay Adjustment (+ / -)</th>}
+                      {(role === 'ADMIN' || role === 'SUPERVISOR') && <th className="p-3">Total Earnings</th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-700">
+                    {workersList.map((w) => {
+                      const totalEarnings = calculateEarnings(w.attendance, w.dailyRate, w.overtimeHours, w.payAdjustment);
+                      return (
+                        <tr key={w.id} className="hover:bg-slate-50">
+                          <td className="p-3 font-semibold text-slate-900">{w.name}</td>
+                          <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold">{w.shiftType}</span></td>
+                          <td className="p-3">
+                            <div className="flex justify-center gap-1">
+                              {w.attendance.map((st, i) => (
+                                <span key={i} className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${st === 'P' ? 'bg-emerald-100 text-emerald-800' : st === 'OT' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
+                                  {st}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center font-mono font-bold text-purple-700">{w.overtimeHours} hrs</td>
+                          
+                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                            <td className="p-3 text-center">
+                              <div className="flex justify-center gap-1">
+                                <button onClick={() => markWorkerAttendance(w.id, 'P')} className="px-2 py-1 bg-emerald-600 text-white font-bold rounded text-[10px]">P</button>
+                                <button onClick={() => markWorkerAttendance(w.id, 'A')} className="px-2 py-1 bg-red-600 text-white font-bold rounded text-[10px]">A</button>
+                              </div>
+                            </td>
+                          )}
+
+                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                            <td className="p-3 text-center">
+                              <div className="flex justify-center gap-1">
+                                <button onClick={() => adjustOvertime(w.id, 1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">
+                                  +OT
+                                </button>
+                                <button onClick={() => adjustOvertime(w.id, -1)} className="px-1.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded hover:bg-purple-200 text-[10px]">
+                                  -OT
+                                </button>
+                              </div>
+                            </td>
+                          )}
+
+                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                            <td className="p-3 text-center">
+                              <div className="flex justify-center gap-1">
+                                <button onClick={() => adjustPay(w.id, 100)} className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded hover:bg-emerald-200 text-[10px]">
+                                  +Pay
+                                </button>
+                                <button onClick={() => adjustPay(w.id, -100)} className="px-1.5 py-0.5 bg-red-100 text-red-800 font-bold rounded hover:bg-red-200 text-[10px]">
+                                  -Pay
+                                </button>
+                              </div>
+                            </td>
+                          )}
+
+                          {(role === 'ADMIN' || role === 'SUPERVISOR') && (
+                            <td className="p-3 font-bold font-mono text-emerald-700">Rs {totalEarnings}</td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: KHATA */}
+          {activeTab === 'khata' && (
+            <div className="space-y-4">
+              {!isKhataUnlocked ? (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md mx-auto text-center shadow-2xl my-8">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-full w-12 h-12 flex items-center justify-center mx-auto text-amber-500 mb-3">
+                    <Key className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-base font-bold text-white uppercase tracking-wide">Khata Authorization Guard</h2>
+                  <p className="text-xs text-slate-400 mt-1 mb-4">Enter security verification code to access financial ledger & order balances.</p>
+
+                  <form onSubmit={handleKhataUnlock} className="space-y-3">
+                    <input
+                      type="password"
+                      placeholder="Enter Khata Passcode (7890)"
+                      value={inputKhataCode}
+                      onChange={(e) => setInputKhataCode(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm text-center font-mono focus:border-amber-500 outline-none"
+                    />
+                    {khataAuthError && <p className="text-xs text-red-400 font-medium">Incorrect Authorization Code. Try 7890.</p>}
+                    <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-xs">
+                      Verify & Access Khata
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                    <div>
+                      <h2 className="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-amber-600" /> Linked Order Khata Ledger
+                      </h2>
+                      <p className="text-[11px] text-slate-500">Track shipments, advances, and outstanding balances</p>
+                    </div>
+                    <span className="px-2.5 py-1 bg-emerald-100 border border-emerald-300 text-emerald-800 font-mono font-bold text-xs rounded">Protected Active</span>
                   </div>
 
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                    w.status === 'ON_DUTY' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {w.status}
-                  </span>
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
+                          <tr>
+                            <th className="p-3">Order ID & Name</th>
+                            <th className="p-3">Seller / Customer</th>
+                            <th className="p-3 font-mono">Shipped Qty</th>
+                            <th className="p-3 font-mono">Paid Qty</th>
+                            <th className="p-3 font-mono">Total Order</th>
+                            <th className="p-3 font-mono">Advance Paid</th>
+                            <th className="p-3 font-mono">Total Paid</th>
+                            <th className="p-3 font-mono">Remaining Due</th>
+                            <th className="p-3 text-center">Add Payment</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 text-slate-700">
+                          {khataLedger.map((account) => {
+                            const remainingBalance = account.totalOrderAmount - account.totalPaidAmount;
+                            return (
+                              <tr key={account.orderId} className="hover:bg-slate-50">
+                                <td className="p-3">
+                                  <span className="font-mono font-bold text-slate-900 block">{account.orderId}</span>
+                                  <span className="text-slate-500 font-medium">{account.orderName}</span>
+                                </td>
+                                <td className="p-3 font-semibold text-slate-800">{account.sellerName}</td>
+                                <td className="p-3 font-mono font-bold">{account.totalQuantityShipped} units</td>
+                                <td className="p-3 font-mono text-emerald-700 font-bold">{account.quantityPaidFor} units</td>
+                                <td className="p-3 font-mono font-bold">Rs {account.totalOrderAmount.toLocaleString()}</td>
+                                <td className="p-3 font-mono text-blue-700 font-bold">Rs {account.advanceGiven.toLocaleString()}</td>
+                                <td className="p-3 font-mono text-emerald-700 font-bold">Rs {account.totalPaidAmount.toLocaleString()}</td>
+                                <td className="p-3 font-mono text-red-600 font-bold">Rs {remainingBalance.toLocaleString()}</td>
+                                <td className="p-3 text-center">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedKhataEntry(account);
+                                      setShowAddPaymentModal(true);
+                                    }}
+                                    className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-[11px] flex items-center gap-1 mx-auto shadow-sm"
+                                  >
+                                    <PlusCircle className="w-3.5 h-3.5" /> Log Payment
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab Content: Database Logs */}
-        {activeTab === 'logs' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide uppercase">System Audit Logs</h2>
-              <span className="text-xs text-slate-500">Historical records & automation events</span>
+          {/* TAB: CCTV */}
+          {activeTab === 'cctv' && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                <Radio className="w-4 h-4 text-red-600 animate-pulse" /> Live Factory Floor CCTV Surveillance
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {cctvCameras.map((cam) => (
+                  <div key={cam.id} className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between relative">
+                    <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between z-10">
+                      <span className="text-xs font-bold text-white font-mono">{cam.id}: {cam.location}</span>
+                      <span className="px-1.5 py-0.5 bg-red-950 border border-red-800 text-red-400 rounded text-[9px] font-bold tracking-wider animate-pulse">● REC</span>
+                    </div>
+                    <div className="h-48 bg-slate-900 relative flex flex-col items-center justify-center p-4">
+                      <Camera className="w-12 h-12 text-slate-700 mb-2 stroke-1" />
+                      <p className="text-xs font-mono text-slate-400 text-center">[IP Stream: {cam.ip}]</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs space-y-2 shadow-sm">
-              {logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-3 pb-2 border-b border-slate-200 last:border-none last:pb-0">
-                  <span className="text-slate-400 shrink-0">[{log.time}]</span>
-                  <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 ${
-                    log.type === 'INFO' ? 'bg-blue-100 text-blue-800' :
-                    log.type === 'WARNING' ? 'bg-amber-100 text-amber-800' :
-                    'bg-purple-100 text-purple-800'
-                  }`}>
-                    {log.type}
-                  </span>
-                  <span className="text-slate-700">{log.message}</span>
-                </div>
-              ))}
+          {/* TAB: LOGS */}
+          {activeTab === 'logs' && role === 'ADMIN' && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-slate-800 uppercase">System Audit Logs (Admin Only)</h2>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs space-y-2">
+                {logs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-3 pb-2 border-b border-slate-200">
+                    <span className="text-slate-400">[{log.time}]</span>
+                    <span className="font-bold text-blue-800">{log.type}</span>
+                    <span className="text-slate-700">{log.message}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-blue-950 border-t border-slate-200 p-4 text-center text-xs text-slate-500 flex items-center justify-between">
-        <span>STAR FACTORY CONTROL v2.4</span>
-        <span className="flex items-center gap-1 font-medium text-emerald-700">
-          <Shield className="w-3.5 h-3.5 text-emerald-600" /> System Online & Protected
-        </span>
-      </footer>
+      {/* --- ALL WORKING MODALS --- */}
+
+      {/* 1. VIEW ORDER DETAILS MODAL */}
+      {selectedOrderDetail && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-amber-500" /> Order Details & Client Profile
+              </h2>
+              <button onClick={() => setSelectedOrderDetail(null)} className="p-1 hover:bg-slate-100 rounded-full">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <p><span className="text-slate-500 font-medium">Order ID:</span> <strong className="font-mono text-slate-900">{selectedOrderDetail.orderId}</strong></p>
+                <p><span className="text-slate-500 font-medium">Item Name:</span> <strong className="text-slate-800">{selectedOrderDetail.itemName}</strong></p>
+                <p><span className="text-slate-500 font-medium">Quantity Shipped:</span> <strong>{selectedOrderDetail.quantity}</strong></p>
+                <p><span className="text-slate-500 font-medium">Shipment Status:</span> <strong className="text-amber-700">{selectedOrderDetail.status}</strong></p>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+                <p><span className="text-slate-500 font-medium">Party / Vendor Name:</span> <strong className="text-slate-900">{selectedOrderDetail.supplierName || selectedOrderDetail.customerName}</strong></p>
+                <p><span className="text-slate-500 font-medium">Contact Phone:</span> <strong className="font-mono text-slate-800">{selectedOrderDetail.contactPhone}</strong></p>
+                <p><span className="text-slate-500 font-medium">City:</span> <strong className="text-amber-700">{selectedOrderDetail.city}</strong></p>
+                <p><span className="text-slate-500 font-medium">Address:</span> <span className="text-slate-700">{selectedOrderDetail.address}</span></p>
+                <p><span className="text-slate-500 font-medium">Total Order Valuation:</span> <strong className="text-emerald-700 font-mono text-sm">{selectedOrderDetail.totalAmount}</strong></p>
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button onClick={() => setSelectedOrderDetail(null)} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. VIEW WORKER / EMPLOYEE DETAILS MODAL */}
+      {selectedWorkerDetail && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <User className="w-5 h-5 text-amber-500" /> Employee Profile & Roster Details
+              </h2>
+              <button onClick={() => setSelectedWorkerDetail(null)} className="p-1 hover:bg-slate-100 rounded-full">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <p><span className="text-slate-500 font-medium">Full Employee Name:</span> <strong className="text-slate-900 text-sm">{selectedWorkerDetail.name}</strong></p>
+                <p><span className="text-slate-500 font-medium">Designation / Role:</span> <strong className="text-slate-800">{selectedWorkerDetail.role}</strong></p>
+                <p><span className="text-slate-500 font-medium">Assigned Work Station:</span> <strong className="text-amber-700">{selectedWorkerDetail.assigned}</strong></p>
+                <p><span className="text-slate-500 font-medium">Shift Type:</span> <span className="font-bold">{selectedWorkerDetail.shiftType} SHIFT</span></p>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <p><span className="text-slate-500 font-medium">Phone Number:</span> <strong className="font-mono text-slate-800">{selectedWorkerDetail.phone}</strong></p>
+                <p><span className="text-slate-500 font-medium">Guardian / Father Name:</span> <strong className="text-slate-800">{selectedWorkerDetail.guardianName}</strong></p>
+                <p><span className="text-slate-500 font-medium">Residential Address:</span> <span className="text-slate-700">{selectedWorkerDetail.address}</span></p>
+              </div>
+
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 space-y-1">
+                <p><span className="text-slate-600 font-medium">Base Daily Rate:</span> <strong className="font-mono">Rs {selectedWorkerDetail.dailyRate}/day</strong></p>
+                <p><span className="text-slate-600 font-medium">Overtime Logged:</span> <strong className="text-purple-700 font-mono">{selectedWorkerDetail.overtimeHours} Hours</strong></p>
+                <p><span className="text-slate-600 font-medium">Net Earnings (This Week):</span> <strong className="text-emerald-700 font-mono text-sm">Rs {calculateEarnings(selectedWorkerDetail.attendance, selectedWorkerDetail.dailyRate, selectedWorkerDetail.overtimeHours, selectedWorkerDetail.payAdjustment)}</strong></p>
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button onClick={() => setSelectedWorkerDetail(null)} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs">
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. LOG KHATA PAYMENT MODAL */}
+      {showAddPaymentModal && selectedKhataEntry && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-4">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-amber-500" /> Log Khata Payment Transaction
+              </h2>
+              <button onClick={() => setShowAddPaymentModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
+            </div>
+
+            <form onSubmit={handleAddPaymentTransaction} className="space-y-3 text-xs">
+              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <p><span className="text-slate-500">Order ID:</span> <strong className="font-mono">{selectedKhataEntry.orderId}</strong></p>
+                <p><span className="text-slate-500">Seller / Client:</span> <strong className="text-slate-800">{selectedKhataEntry.sellerName}</strong></p>
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-600 mb-1">Payment Amount Received (Rs):</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 100000"
+                  value={newPaymentAmount}
+                  onChange={(e) => setNewPaymentAmount(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg outline-none font-mono"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-600 mb-1">Quantity Paid For (Units):</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 20"
+                  value={newPaidQty}
+                  onChange={(e) => setNewPaidQty(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-600 mb-1">Transaction Note / Description:</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Received partial payment for batch 3 shipment"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg outline-none"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <label className="block font-bold text-slate-800 mb-1">Enter Security Code To Save (7890):</label>
+                <input
+                  type="password"
+                  placeholder="Enter Code to Authorize"
+                  value={saveAuthCodeInput}
+                  onChange={(e) => setSaveAuthCodeInput(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-amber-300 bg-amber-50/50 rounded-lg font-mono text-center font-bold"
+                  required
+                />
+                {saveCodeError && <p className="text-xs text-red-500 font-medium mt-1">Invalid Code! Enter 7890 to authorize save.</p>}
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPaymentModal(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs"
+                >
+                  Confirm & Update Khata
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. KHATA EXIT SECURITY CODE MODAL */}
+      {showExitCodeModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-center">
+            <Shield className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+            <h2 className="text-sm font-bold text-slate-900 uppercase">Khata Exit Code Verification</h2>
+            <p className="text-xs text-slate-500 mt-1 mb-4">Navigating away from financial records. Enter authorization code to confirm exit.</p>
+
+            <form onSubmit={confirmKhataExit} className="space-y-3">
+              <input
+                type="password"
+                placeholder="Enter Code (7890)"
+                value={exitCodeInput}
+                onChange={(e) => setExitCodeInput(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm text-center font-mono"
+                required
+              />
+              {exitCodeError && <p className="text-xs text-red-500 font-medium">Incorrect exit authorization code. Enter 7890.</p>}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExitCodeModal(false)}
+                  className="w-1/2 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs"
+                >
+                  Stay in Khata
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs"
+                >
+                  Authorize Exit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
